@@ -186,13 +186,14 @@ function V3TabBar({ active, onChange }) {
   ];
   return (
     <div style={{
-      position: 'absolute', left: 0, right: 0, bottom: 0,
-      paddingBottom: 30, paddingTop: 14,
+      position: 'fixed', left: 0, right: 0, bottom: 0,
+      paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 18px)',
+      paddingTop: 14,
       background: 'linear-gradient(to bottom, rgba(247,243,234,0) 0%, rgba(247,243,234,0.85) 18%, rgba(247,243,234,0.97) 50%, ' + V2.c.paper + ' 100%)',
       backdropFilter: 'blur(8px)',
       WebkitBackdropFilter: 'blur(8px)',
       display: 'flex', justifyContent: 'space-around',
-      zIndex: 5,
+      zIndex: 50,
       pointerEvents: 'auto',
     }}>
       {tabs.map(t => (

@@ -299,6 +299,7 @@ function LumenV3App() {
       background: V2.c.paper,
       overflowY: 'auto', overflowX: 'hidden',
       paddingBottom: view.kind === 'tab' ? 130 : 0,
+      WebkitOverflowScrolling: 'touch',
     }}>
       {body}
       {view.kind === 'tab' && <V3TabBar active={tab} onChange={goTab}/>}
