@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Lumen 澄曜 · App 设计</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Archivo+Black&family=Archivo:wght@400;500;600;700;800;900&family=Noto+Sans+SC:wght@400;500;700;900&family=Noto+Serif+SC:wght@500;700;900&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet"/>
+
+<style>
+  html, body {
+    margin: 0; padding: 0;
+    background: #ECE3D2;
+    font-family: 'Inter', -apple-system, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
+  * { box-sizing: border-box; }
+  button { font-family: inherit; }
+</style>
+
+<!-- React + Babel -->
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script src="lumen-tokens.js"></script>
+<script type="text/babel" src="ios-frame.jsx"></script>
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel" src="lumen-ui.jsx"></script>
+<script type="text/babel" src="lumen-screens.jsx"></script>
+<script type="text/babel" src="lumen-v2.jsx"></script>
+<script type="text/babel" src="lumen-v3-shell.jsx"></script>
+<script type="text/babel" src="lumen-v3-screens.jsx"></script>
+<script type="text/babel" src="lumen-v3-guest.jsx"></script>
+<script type="text/babel" src="lumen-v3-app.jsx"></script>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect } = React;
+
+// ── Phone wrappers ────────────────────────────────────────────
+function V3Phone() {
+  return (
+    <IOSDevice width={390} height={844}>
+      <LumenV3App/>
+    </IOSDevice>
+  );
+}
+
+// V1/V2 phone — kept for comparison
+function LegacyPhone({ tab = 'home', deep = null }) {
+  const [t, setT] = useState(tab);
+  const [d, setD] = useState(deep);
+  let content;
+  if (deep === 'v2-progress') content = <V2ScreenProgress onBack={() => {}}/>;
+  else if (tab === 'v2-home') content = <V2ScreenHome onOpen={() => {}}/>;
+  else if (d === 'progress') content = <ScreenProgress onBack={() => setD(null)}/>;
+  else if (t === 'home') content = <ScreenHome onOpen={(x) => setD(x)}/>;
+  return (
+    <IOSDevice width={390} height={844}>
+      <div style={{ position: 'relative', width: '100%', height: '100%' }}>{content}</div>
+    </IOSDevice>
+  );
+}
+
+// ── Tweaks ────────────────────────────────────────────────────
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "showLegacy": false
+}/*EDITMODE-END*/;
+
+function App() {
+  const [tweaks, setTweak] = useTweaks(TWEAK_DEFAULTS);
+
+  return (
+    <>
+      <DesignCanvas
+        title="Lumen 澄曜 · App"
+        subtitle="可点击原型 · 4 tab + 多账号切换 · 2026"
+      >
+        <DCSection id="v3" title="③ v3  ·  可点击原型 (主)">
+          <DCArtboard id="v3-app" label="App · 完整可交互" width={390} height={844}>
+            <V3Phone/>
+          </DCArtboard>
+        </DCSection>
+
+        {tweaks.showLegacy && (
+          <DCSection id="legacy" title="① — ② 历史版本（对比）">
+            <DCArtboard id="v2-home" label="v2 首页" width={390} height={844}>
+              <LegacyPhone tab="v2-home"/>
+            </DCArtboard>
+            <DCArtboard id="v2-progress" label="v2 Progress File" width={390} height={844}>
+              <LegacyPhone deep="v2-progress"/>
+            </DCArtboard>
+            <DCArtboard id="v1-home" label="v1 首页" width={390} height={844}>
+              <LegacyPhone tab="home"/>
+            </DCArtboard>
+            <DCArtboard id="v1-progress" label="v1 Progress File" width={390} height={844}>
+              <LegacyPhone deep="progress"/>
+            </DCArtboard>
+          </DCSection>
+        )}
+      </DesignCanvas>
+
+      <TweaksPanel title="Tweaks">
+        <TweakSection title="设计版本">
+          <TweakToggle
+            label="显示 v1 / v2 历史版本"
+            value={tweaks.showLegacy}
+            onChange={(v) => setTweak('showLegacy', v)}
+          />
+        </TweakSection>
+        <TweakSection title="使用说明">
+          <div style={{ fontSize: 11, color: '#666', lineHeight: 1.6, fontFamily: 'system-ui' }}>
+            • 点击 App 顶部头像可<b>切换账号</b>（家长 / 孩子）<br/>
+            • 底部 4 tab 可切换：首页 / 档案 / 课表 / 我的<br/>
+            • 点击课程或反馈卡片进入<b>详情页</b>，左上角返回<br/>
+            • 点击右上角放大可<b>全屏聚焦</b>
+          </div>
+        </TweakSection>
+      </TweaksPanel>
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
