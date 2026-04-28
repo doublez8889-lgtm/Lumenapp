@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no"/>
+<title>Lumen 澄曜</title>
+<meta name="description" content="因人而异的学习节奏，可被记录的成长进程。"/>
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.webmanifest"/>
+<meta name="theme-color" content="#1B3A8C"/>
+
+<!-- iOS standalone — 让 iPhone "添加到主屏幕" 后表现得像原生 App -->
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Lumen"/>
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png"/>
+<link rel="apple-touch-startup-image" href="icons/splash.png"/>
+
+<!-- Favicon -->
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png"/>
+
+<!-- Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Archivo+Black&family=Archivo:wght@400;500;600;700;800;900&family=Noto+Sans+SC:wght@400;500;700;900&family=Noto+Serif+SC:wght@500;700;900&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet"/>
+
+<style>
+  html, body {
+    margin: 0; padding: 0;
+    background: #1B3A8C;     /* outside the phone — cobalt */
+    font-family: 'Inter', -apple-system, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+    width: 100vw; height: 100vh;
+    /* iOS safe area */
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    box-sizing: border-box;
+  }
+  * { box-sizing: border-box; }
+  button { font-family: inherit; }
+
+  /* Full-bleed phone — no IOSDevice bezel in production. */
+  #root {
+    width: 100%; height: 100%;
+    background: #F4ECDB;     /* paper */
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Splash overlay shown until React mounts */
+  #splash {
+    position: fixed; inset: 0;
+    background: #F4ECDB;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 9999;
+    transition: opacity 0.4s ease;
+  }
+  #splash.gone { opacity: 0; pointer-events: none; }
+  #splash .mark {
+    font-family: 'Archivo Black', 'Inter', sans-serif;
+    font-size: 64px; font-weight: 900;
+    color: #1B3A8C;
+    letter-spacing: -1px;
+  }
+  #splash .dot { color: #F2C84B; }
+  #splash .sub {
+    margin-top: 18px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; letter-spacing: 2px;
+    color: #1B3A8C; opacity: 0.5;
+  }
+  #splash .stack {
+    text-align: center;
+  }
+</style>
+
+<!-- React + Babel -->
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script src="lumen-tokens.js"></script>
+<script type="text/babel" src="lumen-ui.jsx"></script>
+<script type="text/babel" src="lumen-screens.jsx"></script>
+<script type="text/babel" src="lumen-v2.jsx"></script>
+<script type="text/babel" src="lumen-v3-shell.jsx"></script>
+<script type="text/babel" src="lumen-v3-screens.jsx"></script>
+<script type="text/babel" src="lumen-v3-guest.jsx"></script>
+<script type="text/babel" src="lumen-v3-app.jsx"></script>
+</head>
+<body>
+
+<div id="splash">
+  <div class="stack">
+    <div class="mark">Lumen<span class="dot">.</span></div>
+    <div class="sub">CHARGEMENT · 加载中</div>
+  </div>
+</div>
+
+<div id="root"></div>
+
+<script type="text/babel">
+  // Mount the v3 app full-bleed (no phone bezel — this IS the phone).
+  ReactDOM.createRoot(document.getElementById('root')).render(<LumenV3App/>);
+
+  // Hide splash once React has mounted
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      const splash = document.getElementById('splash');
+      if (splash) {
+        splash.classList.add('gone');
+        setTimeout(() => splash.remove(), 500);
+      }
+    });
+  });
+</script>
+
+<!-- Register service worker -->
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(() => {
+        // Silent — SW is progressive enhancement
+      });
+    });
+  }
+</script>
+
+</body>
+</html>

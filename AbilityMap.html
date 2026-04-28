@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ability Map · Lumen Advance Education</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --cream:   #F7F4EF;
+    --paper:   #FDFBF8;
+    --ink:     #1A1612;
+    --mid:     #5A5040;
+    --soft:    #A09080;
+    --rule:    #D8D0C4;
+    --gold:    #B8860B;
+    --gold-lt: #F5EDD6;
+    --accent:  #2C3E50;
+  }
+
+  body {
+    background: var(--cream);
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    color: var(--ink);
+    min-height: 100vh;
+  }
+
+  /* ── LAYOUT ─────────────────────────────── */
+  .page {
+    max-width: 960px;
+    margin: 0 auto;
+    background: var(--paper);
+    border-left: 1px solid var(--rule);
+    border-right: 1px solid var(--rule);
+    min-height: 100vh;
+  }
+
+  /* ── HEADER ─────────────────────────────── */
+  .header {
+    border-bottom: 2px solid var(--ink);
+    padding: 32px 48px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+  }
+  .header-brand {
+    font-size: 10px;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+    color: var(--soft);
+    margin-bottom: 6px;
+  }
+  .header-title {
+    font-size: 36px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    line-height: 1;
+  }
+  .header-sub {
+    font-size: 12px;
+    color: var(--mid);
+    font-style: italic;
+    margin-top: 4px;
+  }
+  .edit-btn {
+    border: 1.5px solid var(--ink);
+    background: transparent;
+    color: var(--ink);
+    font-family: inherit;
+    font-size: 11px;
+    letter-spacing: .14em;
+    padding: 9px 20px;
+    cursor: pointer;
+    transition: all .18s;
+    text-transform: uppercase;
+  }
+  .edit-btn.active {
+    background: var(--ink);
+    color: var(--paper);
+  }
+  .edit-btn:hover { opacity: .7; }
+
+  /* ── STATS BAR ──────────────────────────── */
+  .stats-bar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    border-bottom: 1px solid var(--rule);
+  }
+  .stat-cell {
+    padding: 16px 24px;
+    border-right: 1px solid var(--rule);
+  }
+  .stat-cell:last-child { border-right: none; }
+  .stat-label {
+    font-size: 9px;
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    color: var(--soft);
+    margin-bottom: 5px;
+  }
+  .stat-val {
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .stat-sub {
+    font-size: 10px;
+    color: var(--soft);
+    font-style: italic;
+    margin-top: 3px;
+  }
+
+  /* ── MAIN GRID ──────────────────────────── */
+  .main {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  /* LEFT PANEL */
+  .left-panel {
+    border-right: 1px solid var(--rule);
+    padding: 28px 24px;
+  }
+  .panel-label {
+    font-size: 9px;
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    color: var(--soft);
+    margin-bottom: 14px;
+  }
+  .student-card {
+    border: 1px solid var(--rule);
+    padding: 14px;
+    margin-bottom: 24px;
+    background: var(--cream);
+  }
+  .student-name { font-size: 17px; font-weight: 700; margin-bottom: 4px; }
+  .student-meta { font-size: 11px; color: var(--mid); }
+  .student-period { font-size: 10px; color: var(--soft); font-style: italic; margin-top: 4px; }
+
+  /* Input fields (edit mode) */
+  .field-group { margin-bottom: 10px; }
+  .field-lbl { font-size: 9px; letter-spacing: .14em; color: var(--soft); margin-bottom: 3px; }
+  .field-inp {
+    width: 100%; border: 1px solid var(--rule); background: white;
+    color: var(--ink); font-family: inherit; font-size: 12px;
+    padding: 5px 9px; outline: none;
+  }
+  .field-inp:focus { border-color: var(--ink); }
+
+  /* Score bars */
+  .score-row { margin-bottom: 14px; }
+  .score-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+  .score-name { font-size: 13px; font-weight: 700; }
+  .score-fr { font-size: 9px; color: var(--soft); font-style: italic; margin-left: 5px; }
+  .score-num { font-size: 13px; font-weight: 700; color: var(--mid); }
+  .score-bar-bg { height: 2px; background: var(--rule); }
+  .score-bar-fill { height: 100%; background: var(--ink); transition: width .4s; }
+  .score-desc { font-size: 10px; color: var(--soft); font-style: italic; margin-top: 4px; }
+
+  /* Slider (edit mode) */
+  .slider-wrap { margin-bottom: 16px; }
+  .slider {
+    width: 100%; -webkit-appearance: none; appearance: none;
+    height: 2px; background: var(--rule); outline: none; cursor: pointer;
+  }
+  .slider::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 12px; height: 12px;
+    background: var(--ink); border-radius: 50%;
+  }
+
+  /* Glow section */
+  .divider { border: none; border-top: 1px solid var(--rule); margin: 18px 0; }
+  .glow-tag-inline {
+    display: inline-block;
+    border: 1px solid var(--gold);
+    color: var(--gold);
+    font-size: 11px; font-weight: 600;
+    padding: 2px 12px; margin-bottom: 8px;
+  }
+  .glow-note { font-size: 11px; color: var(--mid); font-style: italic; line-height: 1.7; }
+  .tag-grid { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
+  .tag-btn {
+    border: 1px solid var(--rule); background: transparent;
+    color: var(--soft); font-family: inherit; font-size: 10px;
+    padding: 2px 8px; cursor: pointer; transition: all .15s;
+  }
+  .tag-btn.selected { border-color: var(--gold); color: var(--gold); background: var(--gold-lt); }
+  .tag-btn:hover { border-color: var(--ink); color: var(--ink); }
+  textarea.field-inp { resize: vertical; line-height: 1.6; }
+
+  /* RIGHT PANEL */
+  .right-panel { padding: 28px 32px; }
+
+  /* Radar container */
+  .radar-wrap {
+    position: relative;
+    width: 100%;
+    max-width: 420px;
+    margin: 0 auto 8px;
+  }
+
+  /* Legend */
+  .legend { display: flex; justify-content: center; gap: 24px; margin-bottom: 24px; }
+  .legend-item { display: flex; align-items: center; gap: 7px; font-size: 11px; color: var(--mid); }
+  .legend-line { width: 22px; height: 2px; background: var(--ink); }
+  .legend-line.dashed {
+    background: transparent;
+    border-top: 2px dashed var(--rule);
+  }
+
+  /* Dim cards */
+  .dim-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    border-top: 1px solid var(--rule);
+    margin-top: 8px;
+  }
+  .dim-card {
+    padding: 14px 12px;
+    border-right: 1px solid var(--rule);
+  }
+  .dim-card:last-child { border-right: none; }
+  .dim-card.top-card { background: var(--gold-lt); }
+  .dim-card.weak-card { background: #EEF2F6; }
+  .dim-card-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 7px; }
+  .dim-card-name { font-size: 12px; font-weight: 700; }
+  .dim-card-fr { font-size: 9px; color: var(--soft); font-style: italic; }
+  .dim-card-score { font-size: 20px; font-weight: 700; line-height: 1; }
+  .dim-card-bar-bg { height: 1.5px; background: var(--rule); margin-bottom: 7px; }
+  .dim-card-bar-fill { height: 100%; background: var(--ink); transition: width .4s; }
+  .dim-card-desc { font-size: 9px; color: var(--soft); font-style: italic; line-height: 1.5; }
+  .dim-badge {
+    font-size: 9px; margin-top: 5px;
+    display: inline-block;
+  }
+  .dim-badge.top { color: var(--gold); }
+  .dim-badge.weak { color: #5A7A9A; }
+
+  /* ── BOTTOM: PORTRAIT + GUIDE ──────────── */
+  .bottom {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border-top: 1px solid var(--rule);
+  }
+  .portrait-box {
+    padding: 28px 40px;
+    border-right: 1px solid var(--rule);
+  }
+  .portrait-title { font-size: 11px; font-weight: 700; letter-spacing: .08em; margin-bottom: 10px; }
+  .portrait-text { font-size: 13px; line-height: 1.9; color: var(--mid); font-style: italic; }
+
+  .guide-box { padding: 28px 40px; }
+  .guide-item { margin-bottom: 14px; }
+  .guide-key { font-size: 11px; font-weight: 700; margin-bottom: 3px; }
+  .guide-key.gold { color: var(--gold); }
+  .guide-key.blue { color: #5A7A9A; }
+  .guide-val { font-size: 11px; color: var(--mid); line-height: 1.6; }
+
+  /* ── FOOTER ─────────────────────────────── */
+  .footer {
+    border-top: 2px solid var(--ink);
+    padding: 14px 48px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .footer-left { font-size: 10px; color: var(--soft); font-style: italic; }
+  .footer-right { font-size: 10px; color: var(--soft); letter-spacing: .1em; }
+
+  /* ── PRINT ──────────────────────────────── */
+  @media print {
+    body { background: white; }
+    .page { border: none; max-width: 100%; }
+    .edit-btn { display: none; }
+    .slider-wrap, .tag-grid, textarea { display: none; }
+    .score-row { display: block !important; }
+  }
+
+  /* hide/show helpers */
+  .view-only { display: block; }
+  .edit-only { display: none; }
+  body.editing .view-only { display: none; }
+  body.editing .edit-only { display: block; }
+  body.editing .score-bar-wrap { display: none; }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- HEADER -->
+  <header class="header">
+    <div>
+      <div class="header-brand">Lumen Advance Education · 澄矅国际教育</div>
+      <div class="header-title">Ability Map</div>
+      <div class="header-sub">能力成长地图 · 季度评估报告</div>
+    </div>
+    <button class="edit-btn" id="editBtn" onclick="toggleEdit()">编辑评分</button>
+  </header>
+
+  <!-- STATS BAR -->
+  <div class="stats-bar">
+    <div class="stat-cell">
+      <div class="stat-label">综合均分</div>
+      <div class="stat-val" id="statAvg">3.8</div>
+      <div class="stat-sub">/ 5.0 满分</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-label">最强维度</div>
+      <div class="stat-val" id="statTop">创造力</div>
+      <div class="stat-sub" id="statTopFr">Créativité</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-label">重点方向</div>
+      <div class="stat-val" id="statWeak">逻辑力</div>
+      <div class="stat-sub">下阶段突破</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-label">高光标签</div>
+      <div class="stat-val" id="statGlow">文化探险家</div>
+      <div class="stat-sub" id="statPeriod">2025年第一季度</div>
+    </div>
+  </div>
+
+  <!-- MAIN GRID -->
+  <div class="main">
+
+    <!-- LEFT PANEL -->
+    <div class="left-panel">
+
+      <!-- Student card VIEW -->
+      <div class="student-card view-only" id="studentView">
+        <div class="student-name" id="viewName">Emma Blanchard</div>
+        <div class="student-meta" id="viewMeta">10岁 · 中文 · 数学思维</div>
+        <div class="student-period" id="viewPeriod">2025年第一季度</div>
+      </div>
+
+      <!-- Student card EDIT -->
+      <div class="edit-only" id="studentEdit" style="margin-bottom:24px;">
+        <div class="panel-label">学员信息</div>
+        <div class="field-group"><div class="field-lbl">学员姓名</div><input class="field-inp" id="inpName" value="Emma Blanchard" oninput="updateStudent()"></div>
+        <div class="field-group"><div class="field-lbl">年龄</div><input class="field-inp" id="inpAge" value="10岁" oninput="updateStudent()"></div>
+        <div class="field-group"><div class="field-lbl">课程</div><input class="field-inp" id="inpSubject" value="中文 · 数学思维" oninput="updateStudent()"></div>
+        <div class="field-group"><div class="field-lbl">评估周期</div><input class="field-inp" id="inpPeriod" value="2025年第一季度" oninput="updateStudent()"></div>
+      </div>
+
+      <!-- Scores VIEW -->
+      <div class="view-only">
+        <div class="panel-label">维度总览</div>
+        <div id="scoreViewList"></div>
+      </div>
+
+      <!-- Scores EDIT -->
+      <div class="edit-only">
+        <div class="panel-label">五维评分 1 – 5 分</div>
+        <div id="sliderList"></div>
+      </div>
+
+      <!-- Glow -->
+      <hr class="divider">
+      <div class="panel-label">⭐ 高光标签</div>
+
+      <!-- Glow VIEW -->
+      <div class="view-only" id="glowView">
+        <div class="glow-tag-inline" id="glowTagView">文化探险家</div>
+        <div class="glow-note" id="glowNoteView">本季度自发用中文给爸爸写了一张便条——老师从未要求过。这是语言内化最真实的证明。</div>
+      </div>
+
+      <!-- Glow EDIT -->
+      <div class="edit-only" id="glowEdit">
+        <div class="tag-grid" id="tagGrid"></div>
+        <textarea class="field-inp" id="inpGlowNote" rows="3" style="margin-top:4px;" oninput="updateGlow()">本季度自发用中文给爸爸写了一张便条——老师从未要求过。这是语言内化最真实的证明。</textarea>
+      </div>
+
+    </div><!-- /left-panel -->
+
+    <!-- RIGHT PANEL -->
+    <div class="right-panel">
+      <div class="radar-wrap">
+        <canvas id="radarChart" style="max-height:380px;"></canvas>
+      </div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-line"></div><span id="legendName">Emma Blanchard</span></div>
+        <div class="legend-item"><div class="legend-line dashed"></div><span>同龄基准参考线</span></div>
+      </div>
+      <!-- Dim cards -->
+      <div class="dim-grid" id="dimGrid"></div>
+    </div>
+
+  </div><!-- /main -->
+
+  <!-- BOTTOM -->
+  <div class="bottom">
+    <div class="portrait-box">
+      <div class="portrait-title">成长画像 · Portrait de croissance</div>
+      <div class="portrait-text" id="portraitText">—</div>
+    </div>
+    <div class="guide-box">
+      <div class="panel-label" style="margin-bottom:16px;">家长解读指南</div>
+      <div class="guide-item">
+        <div class="guide-key gold">金色区域超出虚线</div>
+        <div class="guide-val">孩子在这一维度有天赋或强烈投入——是下阶段的学习杠杆。</div>
+      </div>
+      <div class="guide-item">
+        <div class="guide-key blue">明显缺口处</div>
+        <div class="guide-val">重点突击区，教学计划会动态调整以补强这一维度。</div>
+      </div>
+      <div class="guide-item">
+        <div class="guide-key">虚线 = 同龄基准</div>
+        <div class="guide-val">不代表满分，是同年龄段、同级别学员的参考均值。</div>
+      </div>
+      <div class="guide-item" style="margin-top:20px;">
+        <div class="guide-key" style="margin-bottom:8px;">五维说明</div>
+        <div id="dimGuide" style="font-size:10px;color:var(--soft);line-height:1.8;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="footer-left">本图每季度更新一次，配合 Progress File 档案使用</div>
+    <div class="footer-right">Lumen Advance Education © 2026</div>
+  </footer>
+
+</div><!-- /page -->
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────
+const DIMS = [
+  { key:"expression", zh:"表达力", fr:"Expression", sub:"词汇·语感·流利度", desc:"能否用准确、有层次的语言表达想法",
+    levels:["能准确调用核心词汇","表达具有流利度与韵律感","具备跨文化表达直觉"],
+    fr_levels:["Vocabulaire actif","Fluidité & Rythme","Intuition culturelle"] },
+  { key:"logic",      zh:"逻辑力", fr:"Logique",     sub:"推理·建模·结构", desc:"能否清晰拆解问题并构建有效论证",
+    levels:["识别基础模式与序列","将问题拆解为可操作步骤","批判性假设，举一反三"],
+    fr_levels:["Identification des motifs","Décomposition","Hypothèses critiques"] },
+  { key:"perception", zh:"吸收力", fr:"Perception",  sub:"听读·审题·联想", desc:"能否快速精准地捕捉与内化信息",
+    levels:["精准捕捉关键信息","联想记忆，理解隐喻","共情式理解，构建全局视野"],
+    fr_levels:["Capture d'informations","Mémoire associative","Compréhension empathique"] },
+  { key:"engagement", zh:"驱动力", fr:"Engagement",  sub:"专注·自主·韧性", desc:"学习的主动性、纠错意识与心理韧性",
+    levels:["维持有效专注","好奇心强，尝试自主纠错","强心理韧性，主动迎接挑战"],
+    fr_levels:["Persévérance","Curiosité active","Auto-correction"] },
+  { key:"creativity", zh:"创造力", fr:"Créativité",  sub:"发散·跨界·审美", desc:"能否跳出框架产出令人惊喜的表达",
+    levels:["在框架内有独特尝试","跨学科调用知识，路径不唯一","审美性思考，产出原创观点"],
+    fr_levels:["Originalité","Transfert de connaissances","Pensée esthétique"] },
+];
+
+const GLOW_TAGS = ["自信心爆发","逻辑怪才","文化探险家","安静的革命者","天生演说家","深度观察者","创意催化剂","数感直觉者","共情倾听者","跨界思考者"];
+
+let scores    = { expression:4, logic:3, perception:4, engagement:3, creativity:5 };
+let student   = { name:"Emma Blanchard", age:"10岁", subject:"中文 · 数学思维", period:"2025年第一季度" };
+let glowTag   = "文化探险家";
+let glowNote  = "本季度自发用中文给爸爸写了一张便条——老师从未要求过。这是语言内化最真实的证明。";
+let editing   = false;
+let chart     = null;
+
+// ── INIT ──────────────────────────────────────────────────────
+function init() {
+  buildSliders();
+  buildTagGrid();
+  buildDimGuide();
+  buildChart();
+  render();
+}
+
+function buildSliders() {
+  const list = document.getElementById("sliderList");
+  list.innerHTML = "";
+  DIMS.forEach(dim => {
+    const div = document.createElement("div");
+    div.className = "slider-wrap";
+    div.innerHTML = `
+      <div class="score-head">
+        <span class="score-name">${dim.zh}<span class="score-fr">${dim.fr}</span></span>
+        <span class="score-num" id="snum_${dim.key}">${scores[dim.key]}/5</span>
+      </div>
+      <input type="range" class="slider" min="1" max="5" step="1"
+        value="${scores[dim.key]}" id="sl_${dim.key}"
+        oninput="setScore('${dim.key}', +this.value)">
+      <div class="score-desc" id="sdesc_${dim.key}"></div>
+    `;
+    list.appendChild(div);
+  });
+}
+
+function buildTagGrid() {
+  const grid = document.getElementById("tagGrid");
+  grid.innerHTML = "";
+  GLOW_TAGS.forEach(tag => {
+    const btn = document.createElement("button");
+    btn.className = "tag-btn" + (tag === glowTag ? " selected" : "");
+    btn.textContent = tag;
+    btn.onclick = () => selectTag(tag);
+    grid.appendChild(btn);
+  });
+}
+
+function buildDimGuide() {
+  document.getElementById("dimGuide").innerHTML =
+    DIMS.map(d => `<b>${d.zh}</b>（${d.sub}）${d.desc}<br>`).join("");
+}
+
+function buildChart() {
+  const ctx = document.getElementById("radarChart").getContext("2d");
+  chart = new Chart(ctx, {
+    type: "radar",
+    data: {
+      labels: DIMS.map(d => d.zh),
+      datasets: [
+        {
+          label: "同龄基准",
+          data: [3,3,3,3,3],
+          borderColor: "#C8C0B4",
+          borderWidth: 1.5,
+          borderDash: [5,4],
+          backgroundColor: "rgba(200,192,180,0.08)",
+          pointRadius: 0,
+          pointHoverRadius: 0,
+        },
+        {
+          label: student.name,
+          data: DIMS.map(d => scores[d.key]),
+          borderColor: "#1A1612",
+          borderWidth: 2,
+          backgroundColor: "rgba(26,22,18,0.07)",
+          pointBackgroundColor: "#1A1612",
+          pointRadius: 4,
+          pointHoverRadius: 6,
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      scales: {
+        r: {
+          min: 0, max: 5,
+          ticks: { stepSize:1, display:false },
+          grid: { color: "#E8E0D4", lineWidth: 1 },
+          angleLines: { color: "#E8E0D4", lineWidth: 1 },
+          pointLabels: {
+            font: { family:"'Cormorant Garamond',Georgia,serif", size:13, weight:"700" },
+            color: "#1A1612",
+          }
+        }
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: "#FDFBF8",
+          borderColor: "#D8D0C4",
+          borderWidth: 1,
+          titleColor: "#1A1612",
+          bodyColor: "#5A5040",
+          titleFont: { family:"'Cormorant Garamond',Georgia,serif", size:13, weight:"700" },
+          bodyFont: { family:"'Cormorant Garamond',Georgia,serif", size:12 },
+          callbacks: {
+            label: ctx => `${ctx.dataset.label}：${ctx.raw} / 5`
+          }
+        }
+      }
+    }
+  });
+}
+
+// ── RENDER ────────────────────────────────────────────────────
+function render() {
+  const vals = DIMS.map(d => scores[d.key]);
+  const avg  = (vals.reduce((a,b)=>a+b,0)/5).toFixed(1);
+  const topI = vals.indexOf(Math.max(...vals));
+  const wkI  = vals.indexOf(Math.min(...vals));
+  const top  = DIMS[topI], wk = DIMS[wkI];
+  const gap  = scores[top.key] - scores[wk.key];
+
+  // Stats
+  document.getElementById("statAvg").textContent  = avg;
+  document.getElementById("statTop").textContent  = top.zh;
+  document.getElementById("statTopFr").textContent = top.fr;
+  document.getElementById("statWeak").textContent = wk.zh;
+  document.getElementById("statGlow").textContent = glowTag;
+  document.getElementById("statPeriod").textContent = student.period;
+
+  // Student view
+  document.getElementById("viewName").textContent   = student.name;
+  document.getElementById("viewMeta").textContent   = student.age + " · " + student.subject;
+  document.getElementById("viewPeriod").textContent = student.period;
+  document.getElementById("legendName").textContent = student.name;
+
+  // Score view list
+  const svl = document.getElementById("scoreViewList");
+  svl.innerHTML = DIMS.map((d,i) => `
+    <div class="score-row">
+      <div class="score-head">
+        <span class="score-name">${d.zh}<span class="score-fr">${d.fr}</span></span>
+        <span class="score-num">${scores[d.key]}</span>
+      </div>
+      <div class="score-bar-bg score-bar-wrap">
+        <div class="score-bar-fill" style="width:${(scores[d.key]/5)*100}%"></div>
+      </div>
+    </div>
+  `).join("");
+
+  // Slider descs
+  DIMS.forEach(d => {
+    const lvI = Math.max(0, Math.min(2, Math.round((scores[d.key]-1)/2)));
+    const el = document.getElementById("sdesc_"+d.key);
+    const num = document.getElementById("snum_"+d.key);
+    const sl = document.getElementById("sl_"+d.key);
+    if (el) el.textContent = d.fr_levels[lvI] + " · " + d.levels[lvI];
+    if (num) num.textContent = scores[d.key]+"/5";
+    if (sl) sl.value = scores[d.key];
+  });
+
+  // Chart
+  chart.data.datasets[1].data = DIMS.map(d => scores[d.key]);
+  chart.data.datasets[1].label = student.name;
+  chart.update();
+
+  // Dim cards
+  const grid = document.getElementById("dimGrid");
+  grid.innerHTML = DIMS.map((d,i) => {
+    const s = scores[d.key];
+    const lvI = Math.max(0, Math.min(2, Math.round((s-1)/2)));
+    const isTop = d.key === top.key;
+    const isWk  = d.key === wk.key && !isTop;
+    return `
+      <div class="dim-card ${isTop?"top-card":""} ${isWk?"weak-card":""}">
+        <div class="dim-card-head">
+          <div>
+            <div class="dim-card-name">${d.zh}</div>
+            <div class="dim-card-fr">${d.fr}</div>
+          </div>
+          <div class="dim-card-score">${s}</div>
+        </div>
+        <div class="dim-card-bar-bg">
+          <div class="dim-card-bar-fill" style="width:${(s/5)*100}%"></div>
+        </div>
+        <div class="dim-card-desc">${d.fr_levels[lvI]}</div>
+        ${isTop ? '<div class="dim-badge top">▲ 当前优势</div>' : ""}
+        ${isWk  ? '<div class="dim-badge weak">◎ 重点方向</div>' : ""}
+      </div>
+    `;
+  }).join("");
+
+  // Portrait
+  let portrait;
+  if (gap >= 2) {
+    portrait = `${student.name || "孩子"} 是典型的「${top.zh}主导型」——${top.desc}的能力尤为突出。下阶段我们将以此为杠杆，带动${wk.zh}的协同发展，让各维度形成合力。`;
+  } else if (parseFloat(avg) >= 4) {
+    portrait = `${student.name || "孩子"} 呈现均衡型发展，各维度协调推进。${top.zh}是当前最强杠杆，将成为本阶段突破的切入点，向更高维度延伸。`;
+  } else {
+    portrait = `${student.name || "孩子"} 处于稳步建立期，各维度正在系统打基础。${top.zh}已展现出明显亮点，将成为下阶段突破的核心切入口。`;
+  }
+  document.getElementById("portraitText").textContent = portrait;
+
+  // Glow view
+  document.getElementById("glowTagView").textContent  = glowTag;
+  document.getElementById("glowNoteView").textContent = glowNote;
+}
+
+// ── ACTIONS ───────────────────────────────────────────────────
+function setScore(key, val) {
+  scores[key] = val;
+  render();
+}
+
+function updateStudent() {
+  student.name    = document.getElementById("inpName").value;
+  student.age     = document.getElementById("inpAge").value;
+  student.subject = document.getElementById("inpSubject").value;
+  student.period  = document.getElementById("inpPeriod").value;
+  render();
+}
+
+function updateGlow() {
+  glowNote = document.getElementById("inpGlowNote").value;
+  render();
+}
+
+function selectTag(tag) {
+  glowTag = tag;
+  document.querySelectorAll(".tag-btn").forEach(btn => {
+    btn.classList.toggle("selected", btn.textContent === tag);
+  });
+  render();
+}
+
+function toggleEdit() {
+  editing = !editing;
+  document.body.classList.toggle("editing", editing);
+  const btn = document.getElementById("editBtn");
+  btn.textContent = editing ? "✓ 完成编辑" : "编辑评分";
+  btn.classList.toggle("active", editing);
+}
+
+init();
+</script>
+</body>
+</html>
