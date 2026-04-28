@@ -2,25 +2,9 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no"/>
-<title>Lumen 澄曜</title>
-<meta name="description" content="因人而异的学习节奏，可被记录的成长进程。"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Lumen 澄曜 · App 设计</title>
 
-<!-- PWA -->
-<link rel="manifest" href="manifest.webmanifest"/>
-<meta name="theme-color" content="#1B3A8C"/>
-
-<!-- iOS standalone — 让 iPhone "添加到主屏幕" 后表现得像原生 App -->
-<meta name="apple-mobile-web-app-capable" content="yes"/>
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
-<meta name="apple-mobile-web-app-title" content="Lumen"/>
-<link rel="apple-touch-icon" href="icons/apple-touch-icon.png"/>
-<link rel="apple-touch-startup-image" href="icons/splash.png"/>
-
-<!-- Favicon -->
-<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png"/>
-
-<!-- Fonts -->
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Archivo+Black&family=Archivo:wght@400;500;600;700;800;900&family=Noto+Sans+SC:wght@400;500;700;900&family=Noto+Serif+SC:wght@500;700;900&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet"/>
@@ -28,51 +12,13 @@
 <style>
   html, body {
     margin: 0; padding: 0;
-    background: #1B3A8C;     /* outside the phone — cobalt */
+    background: #ECE3D2;
     font-family: 'Inter', -apple-system, system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     overflow: hidden;
-    width: 100vw; height: 100vh;
-    /* iOS safe area */
-    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
-    box-sizing: border-box;
   }
   * { box-sizing: border-box; }
   button { font-family: inherit; }
-
-  /* Full-bleed phone — no IOSDevice bezel in production. */
-  #root {
-    width: 100%; height: 100%;
-    background: #F4ECDB;     /* paper */
-    overflow: hidden;
-    position: relative;
-  }
-
-  /* Splash overlay shown until React mounts */
-  #splash {
-    position: fixed; inset: 0;
-    background: #F4ECDB;
-    display: flex; align-items: center; justify-content: center;
-    z-index: 9999;
-    transition: opacity 0.4s ease;
-  }
-  #splash.gone { opacity: 0; pointer-events: none; }
-  #splash .mark {
-    font-family: 'Archivo Black', 'Inter', sans-serif;
-    font-size: 64px; font-weight: 900;
-    color: #1B3A8C;
-    letter-spacing: -1px;
-  }
-  #splash .dot { color: #F2C84B; }
-  #splash .sub {
-    margin-top: 18px;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 10px; letter-spacing: 2px;
-    color: #1B3A8C; opacity: 0.5;
-  }
-  #splash .stack {
-    text-align: center;
-  }
 </style>
 
 <!-- React + Babel -->
@@ -81,6 +27,9 @@
 <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
 
 <script src="lumen-tokens.js"></script>
+<script type="text/babel" src="ios-frame.jsx"></script>
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
 <script type="text/babel" src="lumen-ui.jsx"></script>
 <script type="text/babel" src="lumen-screens.jsx"></script>
 <script type="text/babel" src="lumen-v2.jsx"></script>
@@ -90,42 +39,96 @@
 <script type="text/babel" src="lumen-v3-app.jsx"></script>
 </head>
 <body>
-
-<div id="splash">
-  <div class="stack">
-    <div class="mark">Lumen<span class="dot">.</span></div>
-    <div class="sub">CHARGEMENT · 加载中</div>
-  </div>
-</div>
-
 <div id="root"></div>
 
 <script type="text/babel">
-  // Mount the v3 app full-bleed (no phone bezel — this IS the phone).
-  ReactDOM.createRoot(document.getElementById('root')).render(<LumenV3App/>);
+const { useState, useEffect } = React;
 
-  // Hide splash once React has mounted
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      const splash = document.getElementById('splash');
-      if (splash) {
-        splash.classList.add('gone');
-        setTimeout(() => splash.remove(), 500);
-      }
-    });
-  });
+// ── Phone wrappers ────────────────────────────────────────────
+function V3Phone() {
+  return (
+    <IOSDevice width={390} height={844}>
+      <LumenV3App/>
+    </IOSDevice>
+  );
+}
+
+// V1/V2 phone — kept for comparison
+function LegacyPhone({ tab = 'home', deep = null }) {
+  const [t, setT] = useState(tab);
+  const [d, setD] = useState(deep);
+  let content;
+  if (deep === 'v2-progress') content = <V2ScreenProgress onBack={() => {}}/>;
+  else if (tab === 'v2-home') content = <V2ScreenHome onOpen={() => {}}/>;
+  else if (d === 'progress') content = <ScreenProgress onBack={() => setD(null)}/>;
+  else if (t === 'home') content = <ScreenHome onOpen={(x) => setD(x)}/>;
+  return (
+    <IOSDevice width={390} height={844}>
+      <div style={{ position: 'relative', width: '100%', height: '100%' }}>{content}</div>
+    </IOSDevice>
+  );
+}
+
+// ── Tweaks ────────────────────────────────────────────────────
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "showLegacy": false
+}/*EDITMODE-END*/;
+
+function App() {
+  const [tweaks, setTweak] = useTweaks(TWEAK_DEFAULTS);
+
+  return (
+    <>
+      <DesignCanvas
+        title="Lumen 澄曜 · App"
+        subtitle="可点击原型 · 4 tab + 多账号切换 · 2026"
+      >
+        <DCSection id="v3" title="③ v3  ·  可点击原型 (主)">
+          <DCArtboard id="v3-app" label="App · 完整可交互" width={390} height={844}>
+            <V3Phone/>
+          </DCArtboard>
+        </DCSection>
+
+        {tweaks.showLegacy && (
+          <DCSection id="legacy" title="① — ② 历史版本（对比）">
+            <DCArtboard id="v2-home" label="v2 首页" width={390} height={844}>
+              <LegacyPhone tab="v2-home"/>
+            </DCArtboard>
+            <DCArtboard id="v2-progress" label="v2 Progress File" width={390} height={844}>
+              <LegacyPhone deep="v2-progress"/>
+            </DCArtboard>
+            <DCArtboard id="v1-home" label="v1 首页" width={390} height={844}>
+              <LegacyPhone tab="home"/>
+            </DCArtboard>
+            <DCArtboard id="v1-progress" label="v1 Progress File" width={390} height={844}>
+              <LegacyPhone deep="progress"/>
+            </DCArtboard>
+          </DCSection>
+        )}
+      </DesignCanvas>
+
+      <TweaksPanel title="Tweaks">
+        <TweakSection title="设计版本">
+          <TweakToggle
+            label="显示 v1 / v2 历史版本"
+            value={tweaks.showLegacy}
+            onChange={(v) => setTweak('showLegacy', v)}
+          />
+        </TweakSection>
+        <TweakSection title="使用说明">
+          <div style={{ fontSize: 11, color: '#666', lineHeight: 1.6, fontFamily: 'system-ui' }}>
+            • 点击 App 顶部头像可<b>切换账号</b>（家长 / 孩子）<br/>
+            • 底部 4 tab 可切换：首页 / 档案 / 课表 / 我的<br/>
+            • 点击课程或反馈卡片进入<b>详情页</b>，左上角返回<br/>
+            • 点击右上角放大可<b>全屏聚焦</b>
+          </div>
+        </TweakSection>
+      </TweaksPanel>
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
 </script>
-
-<!-- Register service worker -->
-<script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js').catch(() => {
-        // Silent — SW is progressive enhancement
-      });
-    });
-  }
-</script>
-
 </body>
 </html>
