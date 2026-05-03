@@ -221,7 +221,10 @@ function LumenV3App() {
   const openAssessment = () => setView({ kind: 'assessment' });
   const back = () => setView({ kind: 'tab' });
   const goLogin = () => { goTab('me'); };
-  const doLogin = () => { setAccountId('lin'); goTab('home'); };
+ const doLogin = async (user) => {
+  setAccountId(user.email);
+  goTab('home');
+};
 
   let body;
   if (view.kind === 'lesson') {
@@ -255,13 +258,13 @@ function LumenV3App() {
         <V3GuestSchedule onBookAssessment={openAssessment}/>
       </>
     );
-  } else if (isGuest && tab === 'me') {
-    body = (
-      <>
-        <V3TopBar activeId={accountId} onChangeAccount={setAccountId}/>
-        <V3GuestMe onLogin={doLogin}/>
-      </>
-    );
+ } else if (isGuest && tab === 'me') {
+  body = (
+    <>
+      <V3TopBar activeId={accountId} onChangeAccount={setAccountId}/>
+      <V3LoginScreen onLoginSuccess={doLogin} onBack={() => goTab('home')}/>
+    </>
+  );
   } else if (tab === 'home') {
     body = (
       <>
