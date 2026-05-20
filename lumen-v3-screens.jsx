@@ -876,6 +876,7 @@ function V3Me({ accountId }) {
 
       {/* About */}
       <V3MeSection title="关于" en="ABOUT">
+        <V3MeRow label="教务后台" right="登录 →" highlight onClick={() => window.open('/staff.html', '_blank')}/>
         <V3MeRow label="语言 · 中文 / Français" right="→"/>
         <V3MeRow label="隐私政策" right="→"/>
         <V3MeRow label="版本" right="v1.0.0"/>
@@ -901,9 +902,9 @@ function V3MeSection({ title, en, children }) {
   );
 }
 
-function V3MeRow({ label, right, badge, highlight }) {
+function V3MeRow({ label, right, badge, highlight, onClick }) {
   return (
-    <button style={{
+    <button onClick={onClick} style={{
       width: '100%', background: highlight ? V2.c.cobaltLight : 'transparent',
       border: 'none', cursor: 'pointer', textAlign: 'left',
       padding: '14px 22px',
