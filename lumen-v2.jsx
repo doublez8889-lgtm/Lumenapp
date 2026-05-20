@@ -204,7 +204,7 @@ function V2ScreenHome({ onOpen }) {
 
         <div style={{ marginTop: 4 }}>
           {[
-            { num: '01', time: '17:30', title: 'HSK 阅读专项', en: 'Reading practice', subject: 'chinese', teacher: '陈老师', soon: true },
+            { num: '01', time: '17:30', title: 'HSK 阅读专项', en: 'Reading practice', subject: 'chinese', teacher: '老师A', soon: true },
             { num: '02', time: '19:30', title: '袋鼠数学 · 复习', en: 'Math review', subject: 'math', teacher: 'Self-study' },
           ].map((cls, i) => (
             <div key={i} style={{
@@ -252,7 +252,7 @@ function V2ScreenHome({ onOpen }) {
 
           <div style={{
             fontFamily: V2.font.display, fontSize: 13, opacity: 0.7, marginTop: 14, letterSpacing: 0.3,
-          }}>04.24 · with 陈老师</div>
+          }}>04.24 · with 老师A</div>
 
           <h3 style={{
             margin: '6px 0 0', fontFamily: V2.font.display, fontSize: 26,
@@ -588,7 +588,7 @@ function V2Ability() {
         <div style={{
           marginTop: 20, paddingTop: 14, borderTop: '1px solid rgba(255,255,255,0.4)',
           fontFamily: V2.font.cn, fontSize: 12, fontWeight: 700,
-        }}>陈老师 · CHEN  ·  04.20.2026</div>
+        }}>老师A · CHEN  ·  04.20.2026</div>
       </div>
     </div>
   );
@@ -596,9 +596,9 @@ function V2Ability() {
 
 function V2Slices() {
   const slices = [
-    { date: '04.24', subject: 'chinese', title: '《示儿》古诗精读', teacher: '陈老师', tags: ['朗读流畅', '理解到位'], note: '小曜对"家祭无忘告乃翁"的情感把握非常细腻，主动联系自己的家人体验。', color: V2.c.coral },
-    { date: '04.22', subject: 'math', title: '袋鼠数学 · 几何拆解', teacher: '王老师', tags: ['思路清晰', '解法独特'], note: '面对七巧板组合题展现非常好的空间想象力，独立给出课本之外的拼法。', color: V2.c.cobalt },
-    { date: '04.19', subject: 'french', title: 'DELF B1 · 口语模拟', teacher: 'Mme Laurent', tags: ['语速自然', '需练词汇'], note: 'La fluidité approche celle des élèves locaux. Vocabulaire à enrichir.', color: V2.c.butter },
+    { date: '04.24', subject: 'chinese', title: '《示儿》古诗精读', teacher: '老师A', tags: ['朗读流畅', '理解到位'], note: '小曜对"家祭无忘告乃翁"的情感把握非常细腻，主动联系自己的家人体验。', color: V2.c.coral },
+    { date: '04.22', subject: 'math', title: '数学 Wallaby · 几何拆解', teacher: '老师C', tags: ['思路清晰', '解法独特'], note: '面对七巧板组合题展现非常好的空间想象力，独立给出课本之外的拼法。', color: V2.c.cobalt },
+    { date: '04.19', subject: 'french', title: '法语 B1 · 口语模拟', teacher: '老师D', tags: ['语速自然', '需练词汇'], note: 'La fluidité approche celle des élèves locaux. Vocabulaire à enrichir.', color: V2.c.butter },
   ];
   return (
     <div>

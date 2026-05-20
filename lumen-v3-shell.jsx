@@ -7,28 +7,37 @@ const { useState: u3State, useEffect: u3Effect } = React;
 // ── Mock data ─────────────────────────────────────────────────
 const ACCOUNTS = [
   { id: 'guest',    name: '访客',   role: 'guest',  sub: '未登录',      initial: '?',  courseLabel: '欢迎了解 Lumen' },
-  { id: 'parent',   name: '王女士',  role: 'parent', sub: '我',         initial: '王', courseLabel: 'HSK 五级 · 中文' },
-  { id: 'lin',      name: '林小曜',  role: 'child',  sub: '孩子 · CM2',  initial: '林', courseLabel: 'HSK 三 / 袋鼠 / DELF B1' },
-  { id: 'wang',     name: '王小明',  role: 'child',  sub: '孩子 · CE1',  initial: '明', courseLabel: '中文启蒙 / 数学' },
+  { id: 'me',       name: '我',     role: 'authed', sub: '已登录',      initial: '我', courseLabel: '我的家庭', live: true },
+  { id: 'parent',   name: '王女士',  role: 'parent', sub: '我（演示）',  initial: '王', courseLabel: '中文 HSK 5' },
+  { id: 'lin',      name: '林小曜',  role: 'child',  sub: '孩子 · CM2',  initial: '林', courseLabel: '中文 HSK 3 · 数学 Wallaby · 法语 B1' },
+  { id: 'wang',     name: '王小明',  role: 'child',  sub: '孩子 · CE1',  initial: '明', courseLabel: '中文 HSK 1 · 数学 Koala' },
 ];
 
 const WEEK_SCHEDULE = {
   parent: [
-    { day: 'WED', date: '04.30', dayCN: '周三', time: '20:00', dur: '90', title: 'HSK 5 · 阅读精讲', subject: 'chinese', teacher: '陈老师', mode: '线上 ZOOM' },
+    { day: 'WED', date: '04.30', dayCN: '周三', time: '20:00', dur: '90', title: '中文 HSK 5', subject: 'chinese', teacher: '老师A', mode: '线上 ZOOM' },
   ],
+  // 林小曜 — 周六全天托管（5 节正课 + 自习）
   lin: [
-    { day: 'WED', date: '04.30', dayCN: '周三', time: '17:30', dur: '60', title: 'HSK 3 · 阅读专项', subject: 'chinese', teacher: '陈老师', mode: '线下 · Salle B' },
-    { day: 'SAT', date: '05.03', dayCN: '周六', time: '10:00', dur: '90', title: '袋鼠数学 · 几何', subject: 'math', teacher: '王老师', mode: '线下 · Salle A', adjusted: true },
-    { day: 'SUN', date: '05.04', dayCN: '周日', time: '14:00', dur: '60', title: 'DELF B1 · 口语', subject: 'french', teacher: 'Mme Laurent', mode: '线上 ZOOM' },
+    { day: 'WED', date: '04.30', dayCN: '周三', time: '17:30', dur: '45', title: '中文 HSK 3', subject: 'chinese', teacher: '老师A', mode: '线下 · 教室 A' },
+    { day: 'SAT', date: '05.03', dayCN: '周六', time: '09:30', dur: '45', title: '中文 HSK 3', subject: 'chinese', teacher: '老师A', mode: '线下 · 教室 A', dayPlan: true },
+    { day: 'SAT', date: '05.03', dayCN: '周六', time: '10:15', dur: '45', title: '数学 Wallaby', subject: 'math', teacher: '老师C', mode: '线下 · 教室 C', adjusted: true, dayPlan: true },
+    { day: 'SAT', date: '05.03', dayCN: '周六', time: '11:00', dur: '45', title: '法语 B1', subject: 'french', teacher: '老师D', mode: '线下 · 教室 D', dayPlan: true },
+    { day: 'SAT', date: '05.03', dayCN: '周六', time: '13:30', dur: '45', title: '英语 KET', subject: 'english', teacher: '老师D', mode: '线下 · 教室 D', dayPlan: true },
+    { day: 'SAT', date: '05.03', dayCN: '周六', time: '15:00', dur: '45', title: '自习 · 巡堂', subject: 'support', teacher: '老师B', mode: '线下 · 自习区', dayPlan: true },
   ],
   wang: [
-    { day: 'SAT', date: '05.03', dayCN: '周六', time: '14:00', dur: '60', title: '中文启蒙 · 拼音', subject: 'chinese', teacher: '李老师', mode: '线下 · Salle C' },
+    { day: 'SAT', date: '05.03', dayCN: '周六', time: '09:30', dur: '45', title: '中文 HSK 1', subject: 'chinese', teacher: '老师A', mode: '线下 · 教室 A', dayPlan: true },
+    { day: 'SAT', date: '05.03', dayCN: '周六', time: '10:15', dur: '45', title: '数学 Koala', subject: 'math', teacher: '老师C', mode: '线下 · 教室 C', dayPlan: true },
+    { day: 'SAT', date: '05.03', dayCN: '周六', time: '11:00', dur: '45', title: '法语 A1', subject: 'french', teacher: '老师D', mode: '线下 · 教室 D', dayPlan: true },
+    { day: 'SAT', date: '05.03', dayCN: '周六', time: '13:30', dur: '45', title: '英语 Starters', subject: 'english', teacher: '老师D', mode: '线下 · 教室 D', dayPlan: true },
+    { day: 'SAT', date: '05.03', dayCN: '周六', time: '15:00', dur: '45', title: '自习 · 巡堂', subject: 'support', teacher: '老师B', mode: '线下 · 自习区', dayPlan: true },
   ],
 };
 
 const RECENT_FEEDBACK = {
-  parent: { date: '04.20', subject: 'chinese', teacher: '陈老师', text: '本周课文阅读把握很快，"莫愁前路无知己"的引申意义讨论得很主动。', tags: ['理解到位', '主动表达'] },
-  lin:    { date: '04.24', subject: 'chinese', teacher: '陈老师', text: '小曜对《示儿》"家祭无忘告乃翁"的情感把握非常细腻，主动联系自己的家人体验。', tags: ['朗读流畅', '理解到位', '需积累'] },
+  parent: { date: '04.20', subject: 'chinese', teacher: '老师A', text: '本周课文阅读把握很快，"莫愁前路无知己"的引申意义讨论得很主动。', tags: ['理解到位', '主动表达'] },
+  lin:    { date: '04.24', subject: 'chinese', teacher: '老师A', text: '小曜对《示儿》"家祭无忘告乃翁"的情感把握非常细腻，主动联系自己的家人体验。', tags: ['朗读流畅', '理解到位', '需积累'] },
   wang:   null, // 没有最近反馈，刚开始上课
 };
 
@@ -137,7 +146,7 @@ function AccountSwitcher({ activeId, onChange }) {
 // ────────────────────────────────────────────────────────────
 // Top masthead — fixed, includes account switcher
 // ────────────────────────────────────────────────────────────
-function V3TopBar({ activeId, onChangeAccount }) {
+function V3TopBar({ activeId, onChangeAccount, onOpenNotifications, unreadCount = 0 }) {
   return (
     <div style={{ paddingTop: 54 }}>
       <div style={{
@@ -147,10 +156,33 @@ function V3TopBar({ activeId, onChangeAccount }) {
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
       }}>
         <AccountSwitcher activeId={activeId} onChange={onChangeAccount}/>
-        <div style={{
-          fontFamily: V2.font.display, fontSize: 12, fontWeight: 800,
-          letterSpacing: -0.1, lineHeight: 1, whiteSpace: 'nowrap',
-        }}>Lumen<span style={{ color: V2.c.cobalt }}>.</span></div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          {onOpenNotifications && (
+            <button onClick={onOpenNotifications} aria-label="通知" style={{
+              position: 'relative', background: 'transparent', border: 'none',
+              cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center',
+            }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={V2.c.ink} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
+                <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
+              </svg>
+              {unreadCount > 0 && (
+                <span style={{
+                  position: 'absolute', top: 0, right: 0,
+                  minWidth: 14, height: 14, padding: '0 3px',
+                  background: V2.c.cobalt, color: '#fff',
+                  fontFamily: V2.font.mono, fontSize: 9, fontWeight: 700,
+                  borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  border: `1.5px solid ${V2.c.paper}`,
+                }}>{unreadCount > 9 ? '9+' : unreadCount}</span>
+              )}
+            </button>
+          )}
+          <div style={{
+            fontFamily: V2.font.display, fontSize: 12, fontWeight: 800,
+            letterSpacing: -0.1, lineHeight: 1, whiteSpace: 'nowrap',
+          }}>Lumen<span style={{ color: V2.c.cobalt }}>.</span></div>
+        </div>
       </div>
     </div>
   );

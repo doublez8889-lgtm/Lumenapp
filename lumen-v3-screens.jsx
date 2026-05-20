@@ -7,10 +7,36 @@ const { useState: u3sState } = React;
 // HOME — designed for monthly-cadence feedback (not daily)
 // ────────────────────────────────────────────────────────────
 function V3Home({ accountId, onOpenFeedback, onOpenLesson, onOpenArchive, onOpenSchedule }) {
+  // subscribe to live LumenStore so teacher submissions show up immediately
+  if (window.LumenStore) window.LumenStore.useLumenStore();
+
   const account = ACCOUNTS.find(a => a.id === accountId);
   const week = WEEK_SCHEDULE[accountId] || [];
-  const fb = RECENT_FEEDBACK[accountId];
+
+  // Prefer live teacher-submitted feedback over mock
+  const liveFb = window.LumenStore
+    ? window.LumenStore.getFeedback().find(f => f.studentId === accountId)
+    : null;
+  const fb = liveFb || RECENT_FEEDBACK[accountId];
+
+  // Live counts for the "本月小记" strip
+  const liveStats = window.LumenStore ? (() => {
+    const fbs   = window.LumenStore.getFeedback().filter(f => f.studentId === accountId);
+    const snips = window.LumenStore.getSnippets().filter(s => s.studentId === accountId);
+    const reps  = window.LumenStore.getReports().filter(r => r.studentId === accountId);
+    const kw = new Set([
+      ...fbs.flatMap(f => f.tags || []),
+      ...snips.flatMap(s => s.keywords || []),
+    ]);
+    return { fb: fbs.length, snip: snips.length, kw: kw.size, rep: reps.length };
+  })() : { fb: 0, snip: 0, kw: 0, rep: 0 };
+  const hasLive = liveStats.fb + liveStats.snip + liveStats.rep > 0;
+
   const q = QUARTER_HIGHLIGHT[accountId];
+
+  // Today's path — full-day camp (e.g. Saturday all-day care)
+  const dayPath = week.filter(c => c.dayPlan);
+  const hasDayPath = dayPath.length >= 2;
 
   // Greeting
   const today = new Date();
@@ -40,6 +66,154 @@ function V3Home({ accountId, onOpenFeedback, onOpenLesson, onOpenArchive, onOpen
           {account.role === 'parent' ? '。' : ' 这周。'}
         </div>
       </div>
+
+      {/* ── Live month tally — only when teachers have submitted things ── */}
+      {hasLive && (
+        <div style={{ padding: '0 22px 20px' }}>
+          <div style={{
+            display: 'flex', alignItems: 'baseline', gap: 8,
+            marginBottom: 10,
+          }}>
+            <span style={{
+              fontFamily: V2.font.mono, fontSize: 9, fontWeight: 700,
+              letterSpacing: 1.5, color: V2.c.muted,
+            }}>本月 · THIS MONTH</span>
+            <span style={{
+              flex: 1, height: 1, background: V2.c.line, alignSelf: 'center',
+            }}/>
+            {liveStats.rep > 0 && (
+              <span style={{
+                fontFamily: V2.font.mono, fontSize: 9, color: V2.c.cobalt,
+                letterSpacing: 1, fontWeight: 700,
+              }}>· {liveStats.rep} 份新报告</span>
+            )}
+          </div>
+          <div style={{
+            display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 0,
+            border: `1px solid ${V2.c.ink}`, background: V2.c.paper,
+          }}>
+            <Tally n={liveStats.fb}   label="课堂反馈" sub="FEEDBACK"/>
+            <Tally n={liveStats.snip} label="课堂切片" sub="SNIPPETS" border/>
+            <Tally n={liveStats.kw}   label="关键词"   sub="KEYWORDS" border/>
+          </div>
+        </div>
+      )}
+
+      {/* ── SECTION 0 · 今日动线 (only when there's a full-day camp today) ── */}
+      {hasDayPath && (
+        <>
+          <div style={{
+            padding: '12px 22px 8px', borderTop: `1px solid ${V2.c.ink}`,
+            display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
+          }}>
+            <div style={{ fontFamily: V2.font.mono, fontSize: 10, fontWeight: 700, letterSpacing: 1.5 }}>
+              00 · 今日动线 · TODAY'S PATH
+            </div>
+            <span style={{ fontFamily: V2.font.mono, fontSize: 9, color: V2.c.muted, letterSpacing: 1 }}>
+              {dayPath[0].date} · {dayPath[0].dayCN}
+            </span>
+          </div>
+
+          {/* Big day-summary card */}
+          <div style={{ padding: '4px 22px 18px' }}>
+            <div style={{
+              background: V2.c.cobalt, color: V2.c.paper,
+              padding: '20px 18px 6px',
+            }}>
+              <div style={{
+                fontFamily: V2.font.mono, fontSize: 9, opacity: 0.7,
+                letterSpacing: 1.5, marginBottom: 6,
+              }}>
+                ALL-DAY · {dayPath.length} SESSIONS · 9:30—15:45
+              </div>
+              <div style={{
+                fontFamily: V2.font.cn, fontSize: 22, fontWeight: 800,
+                letterSpacing: -0.5, lineHeight: 1.2,
+              }}>
+                {account.name} 的一天
+              </div>
+              <div style={{
+                marginTop: 4, fontFamily: V2.font.cn, fontSize: 11.5,
+                opacity: 0.85, lineHeight: 1.5,
+              }}>
+                按级别分班 · 中{dayPath.find(c=>c.subject==='chinese')?.title.replace('中文 ','') || '—'} · 数{dayPath.find(c=>c.subject==='math')?.title.replace('数学 ','') || '—'} · 法{dayPath.find(c=>c.subject==='french')?.title.replace('法语 ','') || '—'} · 英{dayPath.find(c=>c.subject==='english')?.title.replace('英语 ','') || '—'}
+              </div>
+            </div>
+
+            {/* Vertical timeline of the day */}
+            <div style={{ background: V2.c.cream, padding: '6px 0 8px' }}>
+              {dayPath.map((cls, i) => {
+                const isLast = i === dayPath.length - 1;
+                const room = (cls.mode.match(/教室\s*([A-F])|自习区/) || [])[0] || cls.mode;
+                return (
+                  <button key={i} onClick={() => onOpenLesson(cls)} style={{
+                    width: '100%', textAlign: 'left', cursor: 'pointer',
+                    background: 'transparent', border: 'none',
+                    padding: '10px 18px', display: 'flex', gap: 12, alignItems: 'stretch',
+                    position: 'relative',
+                  }}>
+                    {/* Time + dot column */}
+                    <div style={{ width: 46, flexShrink: 0, position: 'relative' }}>
+                      <div style={{
+                        fontFamily: V2.font.mono, fontSize: 11, fontWeight: 700,
+                        color: V2.c.ink, letterSpacing: 0.5,
+                      }}>{cls.time}</div>
+                      <div style={{
+                        fontFamily: V2.font.mono, fontSize: 8.5, color: V2.c.muted,
+                        marginTop: 1,
+                      }}>{cls.dur}'</div>
+                    </div>
+                    {/* Connector line + dot */}
+                    <div style={{ width: 12, flexShrink: 0, position: 'relative' }}>
+                      <div style={{
+                        position: 'absolute', left: 5, top: 0, bottom: isLast ? '50%' : -12,
+                        width: 1, background: V2.c.line,
+                      }}/>
+                      <div style={{
+                        position: 'absolute', left: 0, top: 6, width: 11, height: 11,
+                        background: V2.c.paper,
+                        border: `2px solid ${cls.subject === 'support' ? V2.c.muted : V2.c[cls.subject] || V2.c.ink}`,
+                      }}/>
+                    </div>
+                    {/* Body */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
+                        <V2Tag subject={cls.subject} size="sm"/>
+                        {cls.adjusted && (
+                          <span style={{
+                            fontFamily: V2.font.mono, fontSize: 8, color: V2.c.coral,
+                            background: V2.c.coralLight, padding: '2px 5px', letterSpacing: 0.5, fontWeight: 600,
+                          }}>调课</span>
+                        )}
+                      </div>
+                      <div style={{ fontFamily: V2.font.cn, fontSize: 13.5, fontWeight: 700, letterSpacing: -0.2 }}>
+                        {cls.title}
+                      </div>
+                      <div style={{
+                        marginTop: 3, fontFamily: V2.font.mono, fontSize: 10, color: V2.c.muted,
+                        display: 'flex', gap: 8, alignItems: 'center',
+                      }}>
+                        <span>{room}</span>
+                        <span style={{ width: 2, height: 2, background: V2.c.muted, borderRadius: '50%' }}/>
+                        <span>{cls.teacher}</span>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+              {/* Lunch divider */}
+              <div style={{
+                margin: '4px 18px 0', padding: '6px 0',
+                fontFamily: V2.font.mono, fontSize: 9, color: V2.c.muted,
+                letterSpacing: 1.5, textAlign: 'center',
+                borderTop: `1px dashed ${V2.c.line}`,
+              }}>
+                · 11:45 — 13:30  午休 ·
+              </div>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* ── SECTION 1 · This week's classes ──────────────────── */}
       <div style={{
@@ -225,6 +399,27 @@ function V3Home({ accountId, onOpenFeedback, onOpenLesson, onOpenArchive, onOpen
   );
 }
 
+// Tally — small stat cell used in V3Home month strip
+function Tally({ n, label, sub, border }) {
+  return (
+    <div style={{
+      padding: '14px 10px 12px', textAlign: 'center',
+      borderLeft: border ? `1px solid ${V2.c.line}` : 'none',
+    }}>
+      <div style={{
+        fontFamily: V2.font.poster, fontSize: 32, fontWeight: 900,
+        lineHeight: 1, letterSpacing: -1, color: V2.c.ink,
+      }}>{n}</div>
+      <div style={{
+        marginTop: 6, fontFamily: V2.font.cn, fontSize: 11, fontWeight: 700, color: V2.c.ink,
+      }}>{label}</div>
+      <div style={{
+        marginTop: 2, fontFamily: V2.font.mono, fontSize: 8.5, color: V2.c.muted, letterSpacing: 1,
+      }}>{sub}</div>
+    </div>
+  );
+}
+
 // ────────────────────────────────────────────────────────────
 // SCHEDULE — week + month overview
 // ────────────────────────────────────────────────────────────
@@ -383,10 +578,219 @@ function V3Schedule({ accountId, onOpenLesson }) {
 }
 
 // ────────────────────────────────────────────────────────────
+// SHARE SHEET — 邀请朋友
+// ────────────────────────────────────────────────────────────
+function ShareSheet({ onClose, accountName }) {
+  const [copied, setCopied] = u3sState(false);
+  const inviteLink = 'https://lumen.education/i/' + (accountName?.length ? 'X' + (accountName.charCodeAt(0) % 1000) : 'X728');
+  const inviteText = `${accountName}向你推荐 Lumen 教育——给孩子做"看得见的成长"。新生通过我的链接报名，双方各得 1 节体验课。`;
+
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(`${inviteText}\n${inviteLink}`);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    }
+  };
+
+  const nativeShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: 'Lumen 教育', text: inviteText, url: inviteLink });
+      } catch {}
+    } else {
+      copyLink();
+    }
+  };
+
+  const channels = [
+    { id: 'wechat',    label: '微信好友', icon: '💬', color: '#07C160' },
+    { id: 'moments',   label: '朋友圈',   icon: '◫',  color: '#07C160' },
+    { id: 'xhs',       label: '小红书',   icon: '✦',  color: '#FF2442' },
+    { id: 'mail',      label: '邮件',     icon: '✉',  color: V2.c.cobalt },
+  ];
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 200,
+      display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
+    }}>
+      {/* Backdrop */}
+      <div onClick={onClose} style={{
+        position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.45)',
+      }}/>
+
+      {/* Sheet */}
+      <div style={{
+        position: 'relative', background: V2.c.paper,
+        borderTop: `1px solid ${V2.c.ink}`,
+        borderTopLeftRadius: 0, borderTopRightRadius: 0,
+        maxHeight: '92%', overflowY: 'auto',
+        animation: 'shareUp 220ms cubic-bezier(0.2, 0.8, 0.2, 1)',
+      }}>
+        {/* Drag bar */}
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 0 0' }}>
+          <div style={{ width: 40, height: 4, background: V2.c.muted, opacity: 0.3, borderRadius: 2 }}/>
+        </div>
+
+        {/* Header */}
+        <div style={{
+          padding: '16px 22px 8px', display: 'flex',
+          justifyContent: 'space-between', alignItems: 'baseline',
+        }}>
+          <div>
+            <div style={{
+              fontFamily: V2.font.mono, fontSize: 9.5, color: V2.c.muted, letterSpacing: 1.5,
+            }}>SHARE LUMEN</div>
+            <h2 style={{
+              margin: '4px 0 0', fontFamily: V2.font.cn,
+              fontSize: 22, fontWeight: 800, letterSpacing: -0.4,
+            }}>邀请朋友</h2>
+          </div>
+          <button onClick={onClose} style={{
+            background: 'transparent', border: 'none', cursor: 'pointer',
+            fontFamily: V2.font.mono, fontSize: 18, color: V2.c.muted, padding: 4,
+          }}>×</button>
+        </div>
+
+        {/* Invite card preview — Lumen visual DNA */}
+        <div style={{ padding: '12px 22px 0' }}>
+          <div style={{
+            background: V2.c.ink, color: V2.c.paper,
+            padding: '24px 22px',
+            position: 'relative', overflow: 'hidden',
+          }}>
+            {/* Background mark */}
+            <div style={{
+              position: 'absolute', right: -20, top: -10,
+              fontFamily: V2.font.display, fontSize: 160, fontWeight: 900,
+              color: V2.c.paper, opacity: 0.06, lineHeight: 0.8, letterSpacing: -8,
+            }}>Lumen</div>
+
+            <div style={{ position: 'relative', zIndex: 1 }}>
+              <div style={{
+                fontFamily: V2.font.mono, fontSize: 9.5, letterSpacing: 2,
+                opacity: 0.6, marginBottom: 12,
+              }}>FROM {accountName?.toUpperCase()}</div>
+              <div style={{
+                fontFamily: V2.font.cn, fontSize: 19, fontWeight: 700,
+                lineHeight: 1.45, marginBottom: 20,
+              }}>
+                让每个孩子的成长<br/>
+                被看见、被记得、被珍藏
+              </div>
+              <div style={{
+                display: 'flex', gap: 16, paddingTop: 14,
+                borderTop: `1px solid ${V2.c.paper}30`,
+              }}>
+                <Stat label="家庭" value="200+"/>
+                <Stat label="国家" value="12"/>
+                <Stat label="学科" value="6"/>
+              </div>
+              <div style={{
+                marginTop: 18, padding: '8px 12px',
+                background: V2.c.cobalt, display: 'inline-block',
+                fontFamily: V2.font.mono, fontSize: 10, fontWeight: 700, letterSpacing: 1.2,
+              }}>双方各得 1 节体验课</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Channels */}
+        <div style={{ padding: '24px 22px 8px' }}>
+          <div style={{
+            fontFamily: V2.font.mono, fontSize: 9, color: V2.c.muted,
+            letterSpacing: 2, marginBottom: 12,
+          }}>分享到</div>
+          <div style={{
+            display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8,
+          }}>
+            {channels.map(c => (
+              <button key={c.id} onClick={nativeShare} style={{
+                background: V2.c.paper, border: `1px solid ${V2.c.ink}`,
+                cursor: 'pointer', padding: '14px 4px',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
+                fontFamily: 'inherit',
+              }}>
+                <div style={{
+                  width: 36, height: 36, borderRadius: 999,
+                  background: c.color, color: '#fff',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 16, fontWeight: 700,
+                }}>{c.icon}</div>
+                <span style={{
+                  fontFamily: V2.font.cn, fontSize: 11, color: V2.c.ink, fontWeight: 600,
+                }}>{c.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Copy link */}
+        <div style={{ padding: '8px 22px 0' }}>
+          <div style={{
+            display: 'flex', border: `1px solid ${V2.c.ink}`,
+            background: V2.c.paper, alignItems: 'stretch',
+          }}>
+            <div style={{
+              flex: 1, minWidth: 0, padding: '12px 14px',
+              fontFamily: V2.font.mono, fontSize: 12, color: V2.c.inkSoft,
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            }}>{inviteLink}</div>
+            <button onClick={copyLink} style={{
+              background: copied ? V2.c.cobalt : V2.c.ink,
+              color: V2.c.paper, border: 'none', cursor: 'pointer',
+              padding: '0 18px', fontFamily: V2.font.mono, fontSize: 11,
+              fontWeight: 700, letterSpacing: 1.5,
+              transition: 'background 200ms',
+            }}>{copied ? '✓ 已复制' : '复制链接'}</button>
+          </div>
+        </div>
+
+        {/* Reward note */}
+        <div style={{ padding: '20px 22px 36px' }}>
+          <div style={{
+            fontFamily: V2.font.cn, fontSize: 11, color: V2.c.muted,
+            lineHeight: 1.7, paddingTop: 16, borderTop: `1px solid ${V2.c.lineSoft}`,
+          }}>
+            朋友通过你的邀请链接报名首期课程后，双方账号自动到账 1 节体验课，可在「课表」中预约。每个家庭最多获得 5 节奖励课。
+          </div>
+        </div>
+      </div>
+
+      <style>{`
+        @keyframes shareUp {
+          from { transform: translateY(40%); opacity: 0; }
+          to   { transform: translateY(0);   opacity: 1; }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+function Stat({ label, value }) {
+  return (
+    <div>
+      <div style={{
+        fontFamily: V2.font.display, fontSize: 22, fontWeight: 800, lineHeight: 1,
+      }}>{value}</div>
+      <div style={{
+        fontFamily: V2.font.mono, fontSize: 9, opacity: 0.6,
+        letterSpacing: 1.5, marginTop: 4,
+      }}>{label}</div>
+    </div>
+  );
+}
+
+// ────────────────────────────────────────────────────────────
 // ME — settings, contact, reports
 // ────────────────────────────────────────────────────────────
 function V3Me({ accountId }) {
   const account = ACCOUNTS.find(a => a.id === accountId);
+  const [shareOpen, setShareOpen] = u3sState(false);
   return (
     <div style={{ padding: '4px 0 24px' }}>
       <div style={{ padding: '14px 22px 8px' }}>
@@ -410,6 +814,45 @@ function V3Me({ accountId }) {
           </div>
         </div>
       </div>
+
+      {/* Invite Friends — 邀请朋友 */}
+      <button onClick={() => setShareOpen(true)} style={{
+        width: '100%', textAlign: 'left',
+        padding: '20px 22px',
+        background: V2.c.ink, color: V2.c.paper,
+        border: 'none', borderBottom: `1px solid ${V2.c.ink}`,
+        cursor: 'pointer', fontFamily: 'inherit',
+        display: 'flex', alignItems: 'center', gap: 16,
+      }}>
+        <div style={{
+          width: 44, height: 44, flexShrink: 0,
+          border: `1.5px solid ${V2.c.paper}`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={V2.c.paper} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="18" cy="5" r="3"/>
+            <circle cx="6" cy="12" r="3"/>
+            <circle cx="18" cy="19" r="3"/>
+            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+          </svg>
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{
+            fontFamily: V2.font.mono, fontSize: 9, letterSpacing: 2,
+            opacity: 0.7, marginBottom: 4,
+          }}>SHARE LUMEN</div>
+          <div style={{ fontFamily: V2.font.cn, fontSize: 16, fontWeight: 700, marginBottom: 2 }}>
+            把 Lumen 推荐给好友
+          </div>
+          <div style={{
+            fontFamily: V2.font.cn, fontSize: 12, opacity: 0.7, lineHeight: 1.5,
+          }}>朋友首次报名，双方各得 1 节体验课</div>
+        </div>
+        <span style={{
+          fontFamily: V2.font.mono, fontSize: 11, opacity: 0.7, letterSpacing: 1,
+        }}>→</span>
+      </button>
 
       {/* Reports */}
       <V3MeSection title="报告" en="REPORTS">
@@ -437,6 +880,8 @@ function V3Me({ accountId }) {
         <V3MeRow label="隐私政策" right="→"/>
         <V3MeRow label="版本" right="v1.0.0"/>
       </V3MeSection>
+
+      {shareOpen && <ShareSheet onClose={() => setShareOpen(false)} accountName={account.name}/>}
     </div>
   );
 }

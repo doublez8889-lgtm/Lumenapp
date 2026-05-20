@@ -13,7 +13,7 @@ const STUDENT = {
   grade: 'CM2 · 五年级',
   avatar: '林',
   joinedDate: '2024.09',
-  currentPlan: '2025–2026 · HSK4 冲刺 + 数学思维提升',
+  currentPlan: '2025–2026 · 中文 HSK 3 冲刺 + 数学 Wallaby',
 };
 
 const PARENT = {
@@ -29,20 +29,20 @@ const ABILITY_PREV = [72, 64, 58, 60, 70];
 // 课堂切片
 const SLICES = [
   { id: 1, date: '04.24', subject: 'chinese', title: '《示儿》古诗精读',
-    teacher: '陈老师 · Mme Chen', tags: ['朗读流畅', '理解到位', '需积累'],
+    teacher: '老师A · Teacher A', tags: ['朗读流畅', '理解到位', '需积累'],
     note: '小曜今天对"家祭无忘告乃翁"的情感把握非常细腻，主动联系自己的家人体验。建议本周积累 3 个相关意象词。' },
   { id: 2, date: '04.22', subject: 'math', title: '袋鼠数学 · 几何图形拆解',
-    teacher: '王老师 · M. Wang', tags: ['思路清晰', '解法独特'],
+    teacher: '老师C · Teacher C', tags: ['思路清晰', '解法独特'],
     note: '面对七巧板组合题展现出非常好的空间想象力，独立给出了一种课本之外的拼法。' },
-  { id: 3, date: '04.19', subject: 'french', title: 'DELF B1 · 口语模拟',
-    teacher: 'Mme Laurent', tags: ['语速自然', '需练词汇'],
+  { id: 3, date: '04.19', subject: 'french', title: '法语 B1 · 口语模拟',
+    teacher: '老师D', tags: ['语速自然', '需练词汇'],
     note: '语速和语调已接近本地学生水平。在"环境保护"话题上词汇略显单薄，本周补充 15 个相关词。' },
 ];
 
 // Milestone 里程碑
 const MILESTONES = [
-  { date: '2026.04', title: 'HSK 三级模拟', score: '278 / 300', note: '阅读单项满分', level: 'gold' },
-  { date: '2026.02', title: '袋鼠数学预选', score: '前 15%', note: 'Niveau Écolier', level: 'silver' },
+  { date: '2026.04', title: '中文 HSK 3 模拟', score: '278 / 300', note: '阅读单项满分', level: 'gold' },
+  { date: '2026.02', title: '袋鼠数学 Wallaby', score: '前 15%', note: 'Niveau Écolier', level: 'silver' },
   { date: '2025.11', title: '中文阅读突破', score: 'Lv.4 → Lv.6', note: '可独立读《草房子》', level: 'milestone' },
   { date: '2025.09', title: '入学初评', score: '建立档案', note: '诊断起点', level: 'start' },
 ];
@@ -50,14 +50,14 @@ const MILESTONES = [
 // 课程表（本周）
 const SCHEDULE = [
   { day: '周一', date: 'Lun. 28', items: [
-    { time: '17:30', dur: '90min', subject: 'chinese', title: 'HSK 阅读专项', teacher: '陈老师', mode: '线下' },
+    { time: '17:30', dur: '45min', subject: 'chinese', title: '中文 HSK 3', teacher: '老师A', mode: '线下' },
   ]},
   { day: '周三', date: 'Mer. 30', items: [
-    { time: '14:00', dur: '60min', subject: 'math', title: '袋鼠数学 · 第 12 讲', teacher: '王老师', mode: '线下' },
-    { time: '16:30', dur: '45min', subject: 'french', title: 'DELF 口语', teacher: 'Mme Laurent', mode: '线上' },
+    { time: '14:00', dur: '45min', subject: 'math', title: '数学 Wallaby', teacher: '老师C', mode: '线下' },
+    { time: '16:30', dur: '45min', subject: 'french', title: '法语 B1', teacher: '老师D', mode: '线上' },
   ]},
   { day: '周六', date: 'Sam. 03', items: [
-    { time: '10:00', dur: '90min', subject: 'chinese', title: '阶段复盘', teacher: '陈老师', mode: '线下' },
+    { time: '10:00', dur: '90min', subject: 'chinese', title: '阶段复盘', teacher: '老师A', mode: '线下' },
   ]},
 ];
 
@@ -203,7 +203,7 @@ function ScreenHome({ onOpen }) {
         <SectionLabel idx="今日" title="今日课程" action="查看课表 →"/>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {[
-            { time: '17:30', subject: 'chinese', title: 'HSK 阅读专项', teacher: '陈老师', dur: '90 min', status: 'upcoming' },
+            { time: '17:30', subject: 'chinese', title: '中文 HSK 3', teacher: '老师A', dur: '45 min', status: 'upcoming' },
           ].map((cls, i) => (
             <Card key={i} pad={14}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
@@ -280,7 +280,7 @@ function ScreenHome({ onOpen }) {
                 下一站 · 季度 Milestone Review
               </div>
               <div style={{ fontFamily: LF.sans, fontSize: 11, color: LC.muted, marginTop: 1 }}>
-                预计 6 月 · 与陈老师 1 对 1 复盘
+                预计 6 月 · 与老师A 1 对 1 复盘
               </div>
             </div>
             <Icon name="chevronR" size={16} color={LC.muted}/>
@@ -471,9 +471,9 @@ function AbilityPanel() {
       <div style={{ marginTop: 18 }}>
         <Card pad={16} style={{ background: LC.goldWash, border: `0.5px solid ${LC.gold}33` }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-            <Avatar name="陈" size={28} color={LC.goldDeep}/>
+            <Avatar name="A" size={28} color={LC.goldDeep}/>
             <div>
-              <div style={{ fontFamily: LF.cn, fontSize: 12, fontWeight: 600, color: LC.ink }}>陈老师 · 阶段评语</div>
+              <div style={{ fontFamily: LF.cn, fontSize: 12, fontWeight: 600, color: LC.ink }}>老师A · 阶段评语</div>
               <div style={{ fontFamily: LF.sans, fontSize: 10, color: LC.muted }}>2026.04.20</div>
             </div>
           </div>
@@ -686,9 +686,9 @@ function ScreenMethod() {
 // ════════════════════════════════════════════════════════════════
 function ScreenMessages() {
   const threads = [
-    { teacher: '陈老师', subject: 'chinese', last: '小曜今天的复述练习已经发您查看，建议本周补充 3 个意象词…', time: '17:42', unread: 2 },
-    { teacher: '王老师', subject: 'math', last: '袋鼠数学第 12 讲笔记已上传 Progress File', time: '昨天', unread: 0 },
-    { teacher: 'Mme Laurent', subject: 'french', last: 'Le travail de Xiaoyao en expression orale est très solide cette semaine.', time: '04.22', unread: 0 },
+    { teacher: '老师A', subject: 'chinese', last: '小曜今天的复述练习已经发您查看，建议本周补充 3 个意象词…', time: '17:42', unread: 2 },
+    { teacher: '老师C', subject: 'math', last: '袋鼠数学第 12 讲笔记已上传 Progress File', time: '昨天', unread: 0 },
+    { teacher: '老师D', subject: 'french', last: 'Le travail de Xiaoyao en expression orale est très solide cette semaine.', time: '04.22', unread: 0 },
   ];
   return (
     <div style={{ background: LC.cream, minHeight: '100%', paddingBottom: 100 }}>

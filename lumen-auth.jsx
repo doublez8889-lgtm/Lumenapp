@@ -1,269 +1,223 @@
-// Lumen — 真实登录界面
-// 用 Supabase Magic Link OTP（邮箱验证码）
-// 替换原来假的 doLogin()
+// Lumen · Real auth screen (Supabase email OTP)
+// Renders inside the v3 shell as a "view" the way other detail screens do.
 
 const { useState: uAuthState, useEffect: uAuthEffect } = React;
 
-// ────────────────────────────────────────────────────────────
-// LOGIN SCREEN — 邮箱 + 6位验证码
-// ────────────────────────────────────────────────────────────
-function V3LoginScreen({ onLoginSuccess, onBack }) {
-  const [step, setStep] = uAuthState('email'); // 'email' | 'otp' | 'loading' | 'error'
+function V3AuthScreen({ onSuccess, onBack }) {
+  const [step, setStep]   = uAuthState('email');     // 'email' → 'otp'
   const [email, setEmail] = uAuthState('');
-  const [otp, setOtp] = uAuthState('');
-  const [errorMsg, setErrorMsg] = uAuthState('');
-  const [countdown, setCountdown] = uAuthState(0);
+  const [otp, setOtp]     = uAuthState('');
+  const [busy, setBusy]   = uAuthState(false);
+  const [err, setErr]     = uAuthState(null);
+  const [info, setInfo]   = uAuthState(null);
 
-  // 倒计时
-  uAuthEffect(() => {
-    if (countdown <= 0) return;
-    const t = setTimeout(() => setCountdown(c => c - 1), 1000);
-    return () => clearTimeout(t);
-  }, [countdown]);
-
-  // 发送验证码
-  async function handleSendOTP() {
-    if (!email.trim() || !email.includes('@')) {
-      setErrorMsg('请输入有效的邮箱地址');
-      return;
+  const sendOtp = async () => {
+    setErr(null); setInfo(null);
+    if (!email || !email.includes('@')) {
+      setErr('请输入有效的邮箱'); return;
     }
-    setErrorMsg('');
-    setStep('loading');
+    setBusy(true);
     try {
-      await LumenAuth.sendOTP(email.trim().toLowerCase());
+      await window.LumenData.authSendOtp(email.trim());
       setStep('otp');
-      setCountdown(60);
+      setInfo('验证码已发送，请查收邮箱（垃圾箱也看一下）');
     } catch (e) {
-      setErrorMsg('发送失败，请检查邮箱地址后重试');
-      setStep('email');
-    }
-  }
+      setErr(e.message || '发送失败，请稍后重试');
+    } finally { setBusy(false); }
+  };
 
-  // 验证OTP
-  async function handleVerifyOTP() {
-    if (otp.length < 6) {
-      setErrorMsg('请输入6位验证码');
-      return;
-    }
-    setErrorMsg('');
-    setStep('loading');
+  const verifyOtp = async () => {
+    setErr(null); setInfo(null);
+    if (otp.length < 6) { setErr('请输入完整的 6 位验证码'); return; }
+    setBusy(true);
     try {
-      const user = await LumenAuth.verifyOTP(email.trim().toLowerCase(), otp.trim());
-      onLoginSuccess(user);
+      const user = await window.LumenData.authVerifyOtp(email.trim(), otp.trim());
+      await window.LumenData.ensureFamily(user);
+      onSuccess(user);
     } catch (e) {
-      setErrorMsg('验证码错误或已过期，请重新发送');
-      setStep('otp');
-    }
-  }
-
-  // 重新发送
-  async function handleResend() {
-    if (countdown > 0) return;
-    setOtp('');
-    setErrorMsg('');
-    try {
-      await LumenAuth.sendOTP(email.trim().toLowerCase());
-      setCountdown(60);
-    } catch (e) {
-      setErrorMsg('发送失败，请稍后重试');
-    }
-  }
+      setErr(e.message || '验证失败，请检查验证码');
+    } finally { setBusy(false); }
+  };
 
   return (
     <div style={{ background: V2.c.paper, minHeight: '100%' }}>
-      {/* 顶部导航 */}
+      {/* Top nav */}
       <div style={{
-        position: 'sticky', top: 0, background: V2.c.paper, zIndex: 4,
-        padding: '54px 22px 12px', borderBottom: `1px solid ${V2.c.line}`,
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        padding: '14px 22px', display: 'flex', alignItems: 'center',
+        gap: 12, borderBottom: `1px solid ${V2.c.line}`,
       }}>
         <button onClick={onBack} style={{
           background: 'transparent', border: 'none', cursor: 'pointer',
-          display: 'flex', alignItems: 'center', gap: 6,
-          fontFamily: V2.font.cn, fontSize: 13, fontWeight: 600,
-        }}>
-          <span style={{ fontSize: 16 }}>←</span> 返回
-        </button>
-        <span style={{ fontFamily: V2.font.mono, fontSize: 9.5, color: V2.c.muted, letterSpacing: 1.5 }}>
-          登录 · LOGIN
-        </span>
+          fontFamily: V2.font.mono, fontSize: 11, color: V2.c.muted,
+          letterSpacing: 1, padding: 0,
+        }}>← 返回</button>
+        <span style={{
+          marginLeft: 'auto',
+          fontFamily: V2.font.mono, fontSize: 9, color: V2.c.muted,
+          letterSpacing: 1.5,
+        }}>SIGN IN · 登录</span>
       </div>
 
-      <div style={{ padding: '28px 22px 60px' }}>
-        {/* 标题 */}
+      {/* Hero */}
+      <div style={{ padding: '32px 22px 22px' }}>
         <div style={{
-          fontFamily: V2.font.mono, fontSize: 9.5, color: V2.c.cobalt,
-          letterSpacing: 2, fontWeight: 700, marginBottom: 8,
-        }}>· LUMEN · PARIS</div>
-        <h1 style={{
-          margin: '0 0 6px', fontFamily: V2.font.cn, fontSize: 24, fontWeight: 800,
-          letterSpacing: -0.5, lineHeight: 1.2,
+          fontFamily: V2.font.mono, fontSize: 9, color: V2.c.muted,
+          letterSpacing: 1.5, marginBottom: 10,
         }}>
-          {step === 'otp' ? '输入验证码' : '登录 · 查看档案'}
-        </h1>
-        <p style={{
-          margin: '0 0 28px', fontFamily: V2.font.cn, fontSize: 13,
-          color: V2.c.inkSoft, lineHeight: 1.65,
+          STEP {step === 'email' ? '01' : '02'} / 02
+        </div>
+        <div style={{
+          fontFamily: V2.font.cn, fontSize: 28, fontWeight: 800,
+          letterSpacing: -0.5, lineHeight: 1.15,
         }}>
-          {step === 'otp'
-            ? `验证码已发送至 ${email}，请在10分钟内输入。`
-            : '输入注册邮箱，我们会发送一个6位验证码。'}
-        </p>
+          {step === 'email' ? '用邮箱登录' : '查收验证码'}
+        </div>
+        <div style={{
+          marginTop: 8, fontFamily: V2.font.cn, fontSize: 13,
+          color: V2.c.inkSoft, lineHeight: 1.5,
+        }}>
+          {step === 'email'
+            ? '我们会发一个 6 位验证码到你的邮箱，无需密码。'
+            : `我们刚刚发了一个验证码到 ${email}`}
+        </div>
+      </div>
 
-        {/* ── STEP 1：输入邮箱 ── */}
-        {(step === 'email' || step === 'loading') && (
+      {/* Form */}
+      <div style={{ padding: '0 22px 24px' }}>
+        {step === 'email' ? (
           <>
             <div style={{
-              fontFamily: V2.font.mono, fontSize: 9.5, fontWeight: 700,
+              fontFamily: V2.font.mono, fontSize: 9, color: V2.c.muted,
               letterSpacing: 1.5, marginBottom: 6,
-            }}>邮箱 · EMAIL</div>
+            }}>EMAIL</div>
             <input
               type="email"
+              autoFocus
+              autoCapitalize="off"
+              autoCorrect="off"
+              placeholder="you@example.com"
               value={email}
               onChange={e => setEmail(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleSendOTP()}
-              placeholder="exemple@email.com"
-              autoFocus
+              onKeyDown={e => e.key === 'Enter' && sendOtp()}
               style={{
-                width: '100%', padding: '14px', boxSizing: 'border-box',
-                background: V2.c.paper, border: `1px solid ${V2.c.ink}`,
-                fontFamily: V2.font.cn, fontSize: 15, fontWeight: 500,
-                outline: 'none', marginBottom: 12,
+                width: '100%',
+                padding: '12px 0',
+                border: 'none',
+                borderBottom: `1.5px solid ${V2.c.ink}`,
+                background: 'transparent',
+                fontFamily: V2.font.sans, fontSize: 18,
+                color: V2.c.ink,
+                outline: 'none',
               }}
             />
-            {errorMsg && (
-              <div style={{
-                fontFamily: V2.font.cn, fontSize: 12, color: V2.c.coral,
-                marginBottom: 12, padding: '8px 10px',
-                background: V2.c.coralLight,
-              }}>{errorMsg}</div>
-            )}
-            <button
-              onClick={handleSendOTP}
-              disabled={step === 'loading'}
-              style={{
-                width: '100%', padding: '14px',
-                background: step === 'loading' ? V2.c.muted : V2.c.ink,
-                color: V2.c.paper, border: 'none', cursor: step === 'loading' ? 'not-allowed' : 'pointer',
-                fontFamily: V2.font.cn, fontSize: 14, fontWeight: 700,
-                transition: 'background 0.2s',
-              }}
-            >
-              {step === 'loading' ? '发送中……' : '发送验证码 →'}
-            </button>
           </>
-        )}
-
-        {/* ── STEP 2：输入验证码 ── */}
-        {step === 'otp' && (
+        ) : (
           <>
             <div style={{
-              fontFamily: V2.font.mono, fontSize: 9.5, fontWeight: 700,
+              fontFamily: V2.font.mono, fontSize: 9, color: V2.c.muted,
               letterSpacing: 1.5, marginBottom: 6,
-            }}>验证码 · CODE</div>
+            }}>验证码 · 6 位数字</div>
             <input
-              type="number"
-              value={otp}
-              onChange={e => setOtp(e.target.value.slice(0, 6))}
-              onKeyDown={e => e.key === 'Enter' && handleVerifyOTP()}
-              placeholder="000000"
+              type="text"
+              inputMode="numeric"
               autoFocus
+              maxLength={6}
+              placeholder="000000"
+              value={otp}
+              onChange={e => setOtp(e.target.value.replace(/\D/g, ''))}
+              onKeyDown={e => e.key === 'Enter' && verifyOtp()}
               style={{
-                width: '100%', padding: '14px', boxSizing: 'border-box',
-                background: V2.c.paper, border: `1px solid ${V2.c.ink}`,
+                width: '100%',
+                padding: '12px 0',
+                border: 'none',
+                borderBottom: `1.5px solid ${V2.c.ink}`,
+                background: 'transparent',
                 fontFamily: V2.font.mono, fontSize: 28, fontWeight: 700,
-                letterSpacing: 8, outline: 'none', marginBottom: 12,
-                textAlign: 'center',
+                letterSpacing: 8, color: V2.c.ink,
+                outline: 'none', textAlign: 'center',
               }}
             />
-            {errorMsg && (
-              <div style={{
-                fontFamily: V2.font.cn, fontSize: 12, color: V2.c.coral,
-                marginBottom: 12, padding: '8px 10px',
-                background: V2.c.coralLight,
-              }}>{errorMsg}</div>
-            )}
-            <button
-              onClick={handleVerifyOTP}
+            <button onClick={() => { setStep('email'); setOtp(''); setInfo(null); setErr(null); }}
               style={{
-                width: '100%', padding: '14px',
-                background: V2.c.ink, color: V2.c.paper,
-                border: 'none', cursor: 'pointer',
-                fontFamily: V2.font.cn, fontSize: 14, fontWeight: 700,
-              }}
-            >
-              确认登录 →
-            </button>
-
-            {/* 重新发送 */}
-            <button
-              onClick={handleResend}
-              disabled={countdown > 0}
-              style={{
-                marginTop: 12, width: '100%', padding: '11px',
-                background: 'transparent', border: `1px solid ${V2.c.line}`,
-                cursor: countdown > 0 ? 'not-allowed' : 'pointer',
-                fontFamily: V2.font.cn, fontSize: 12,
-                color: countdown > 0 ? V2.c.muted : V2.c.ink,
-              }}
-            >
-              {countdown > 0 ? `重新发送（${countdown}s）` : '重新发送验证码'}
-            </button>
-
-            {/* 修改邮箱 */}
-            <button
-              onClick={() => { setStep('email'); setOtp(''); setErrorMsg(''); }}
-              style={{
-                marginTop: 8, width: '100%', padding: '8px',
-                background: 'transparent', border: 'none', cursor: 'pointer',
-                fontFamily: V2.font.cn, fontSize: 11, color: V2.c.muted,
-              }}
-            >
-              修改邮箱地址
-            </button>
+                marginTop: 18, background: 'transparent', border: 'none',
+                cursor: 'pointer', padding: 0,
+                fontFamily: V2.font.mono, fontSize: 10, color: V2.c.muted,
+                letterSpacing: 1, textDecoration: 'underline',
+              }}>换个邮箱</button>
           </>
         )}
 
-        {/* 说明文字 */}
+        {/* Status messages */}
+        {err && (
+          <div style={{
+            marginTop: 16, padding: '10px 12px',
+            background: V2.c.coralLight, color: V2.c.coral,
+            fontFamily: V2.font.cn, fontSize: 12, fontWeight: 600,
+          }}>{err}</div>
+        )}
+        {info && !err && (
+          <div style={{
+            marginTop: 16, padding: '10px 12px',
+            background: V2.c.cobaltLight, color: V2.c.cobalt,
+            fontFamily: V2.font.cn, fontSize: 12, fontWeight: 600,
+          }}>{info}</div>
+        )}
+
+        {/* Submit */}
+        <button
+          onClick={step === 'email' ? sendOtp : verifyOtp}
+          disabled={busy}
+          style={{
+            marginTop: 28, width: '100%',
+            padding: '16px',
+            background: busy ? V2.c.muted : V2.c.ink,
+            color: V2.c.paper,
+            border: 'none', cursor: busy ? 'wait' : 'pointer',
+            fontFamily: V2.font.cn, fontSize: 15, fontWeight: 700,
+            letterSpacing: 0.5,
+          }}>
+          {busy ? '处理中…' : (step === 'email' ? '发送验证码' : '验证并登录 →')}
+        </button>
+
+        {/* Demo skip — bypass auth to verify app shell while email rate-limited */}
+        <button
+          onClick={() => {
+            try {
+              localStorage.setItem('lumen_demo_mode', '1');
+              localStorage.setItem('lumen_demo_account', 'parent');
+            } catch (e) {}
+            window.location.reload();
+          }}
+          style={{
+            marginTop: 14, width: '100%',
+            padding: '14px',
+            background: 'transparent',
+            color: V2.c.ink,
+            border: `1px solid ${V2.c.line}`,
+            cursor: 'pointer',
+            fontFamily: V2.font.cn, fontSize: 13, fontWeight: 500,
+            letterSpacing: 0.3,
+          }}>
+          演示模式 · 跳过登录 →
+        </button>
         <div style={{
-          marginTop: 32, paddingTop: 20,
-          borderTop: `1px solid ${V2.c.lineSoft}`,
-          fontFamily: V2.font.mono, fontSize: 9, color: V2.c.muted,
-          letterSpacing: 1, lineHeight: 1.8,
+          marginTop: 10, fontFamily: V2.font.cn, fontSize: 10.5,
+          color: V2.c.muted, lineHeight: 1.6,
         }}>
-          · 仅限已在 Lumen 注册的家庭<br/>
-          · 验证码10分钟内有效<br/>
-          · 如有问题请联系 contact@lumenfrance.com
+          使用预置账号「林女士」直接进入 App，<br/>不连接数据库，仅供演示与界面验证。
         </div>
+      </div>
+
+      {/* Footer */}
+      <div style={{
+        padding: '24px 22px', borderTop: `1px solid ${V2.c.line}`,
+        fontFamily: V2.font.cn, fontSize: 11, color: V2.c.muted, lineHeight: 1.6,
+      }}>
+        登录即代表你同意 Lumen 隐私政策。<br/>
+        我们不会用你的邮箱发送广告。
       </div>
     </div>
   );
 }
 
-// ────────────────────────────────────────────────────────────
-// AUTH GATE — 包裹整个 App，自动检测登录状态
-// ────────────────────────────────────────────────────────────
-function useAuth() {
-  const [user, setUser] = uAuthState(null);
-  const [loading, setLoading] = uAuthState(true);
-
-  uAuthEffect(() => {
-    // 检查是否已登录
-    LumenAuth.getCurrentUser().then(u => {
-      setUser(u);
-      setLoading(false);
-    });
-
-    // 监听登录状态变化
-    const { data: { subscription } } = LumenAuth.onAuthStateChange((event, u) => {
-      setUser(u);
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  return { user, loading };
-}
-
-Object.assign(window, { V3LoginScreen, useAuth });
+Object.assign(window, { V3AuthScreen });

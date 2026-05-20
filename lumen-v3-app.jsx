@@ -5,7 +5,7 @@ const { useState: u3aState } = React;
 // ────────────────────────────────────────────────────────────
 // LESSON DETAIL — opened from home or schedule
 // ────────────────────────────────────────────────────────────
-function V3LessonDetail({ lesson, onBack }) {
+function V3LessonDetail({ lesson, onBack, onRequest }) {
   return (
     <div style={{ background: V2.c.paper, minHeight: '100%' }}>
       {/* Back nav */}
@@ -70,13 +70,21 @@ function V3LessonDetail({ lesson, onBack }) {
 
         {/* Actions */}
         <div style={{ marginTop: 28, display: 'flex', gap: 8 }}>
-          <button style={{
+          <button onClick={() => onRequest && onRequest('leave', {
+            studentName: lesson.student || '小宇',
+            lessonTitle: lesson.title,
+            lessonDate: `${lesson.dayCN || ''} ${lesson.date || ''} ${lesson.time || ''}`.trim(),
+          })} style={{
             flex: 1, padding: '12px',
             background: V2.c.paper, color: V2.c.ink,
             border: `1px solid ${V2.c.ink}`, cursor: 'pointer',
             fontFamily: V2.font.cn, fontSize: 12, fontWeight: 600,
           }}>请假</button>
-          <button style={{
+          <button onClick={() => onRequest && onRequest('reschedule', {
+            studentName: lesson.student || '小宇',
+            lessonTitle: lesson.title,
+            lessonDate: `${lesson.dayCN || ''} ${lesson.date || ''} ${lesson.time || ''}`.trim(),
+          })} style={{
             flex: 1, padding: '12px',
             background: V2.c.paper, color: V2.c.ink,
             border: `1px solid ${V2.c.ink}`, cursor: 'pointer',
@@ -210,9 +218,54 @@ function V3FeedbackDetail({ fb, onBack }) {
 // MAIN APP — controller
 // ────────────────────────────────────────────────────────────
 function LumenV3App() {
-  const [accountId, setAccountId] = u3aState('guest');
+  // Demo mode bypass — set by AuthScreen's "演示模式" button
+  const demoMode = (() => {
+    try { return localStorage.getItem('lumen_demo_mode') === '1'; } catch { return false; }
+  })();
+  const demoAccount = (() => {
+    try { return localStorage.getItem('lumen_demo_account') || 'parent'; } catch { return 'parent'; }
+  })();
+
+  const [accountId, setAccountId] = u3aState(demoMode ? demoAccount : 'guest');
   const [tab, setTab] = u3aState('home');
   const [view, setView] = u3aState({ kind: 'tab' });
+  const [authedUser, setAuthedUser] = u3aState(null);
+
+  // Onboarding stage override (for demo / Tweaks)
+  // null = auto detect; 'A' / 'B' / 'C' = forced stage
+  const [onboardingStage, setOnboardingStage] = u3aState(() => {
+    try { return localStorage.getItem('lumen_onboarding_stage') || null; } catch { return null; }
+  });
+  const setStageAndPersist = (s) => {
+    setOnboardingStage(s);
+    try {
+      if (s) localStorage.setItem('lumen_onboarding_stage', s);
+      else localStorage.removeItem('lumen_onboarding_stage');
+    } catch {}
+  };
+  // expose for Tweaks panel
+  React.useEffect(() => {
+    window.__lumenSetStage = setStageAndPersist;
+    window.__lumenGetStage = () => onboardingStage;
+  }, [onboardingStage]);
+
+  // Listen for Supabase auth state on mount (skip in demo mode)
+  React.useEffect(() => {
+    if (demoMode) return; // demo mode — no DB connection
+    let unsub;
+    (async () => {
+      const u = await window.LumenData.authGetUser();
+      if (u) {
+        setAuthedUser(u);
+        setAccountId('me');
+      }
+      unsub = window.LumenData.authOnChange((user) => {
+        setAuthedUser(user);
+        if (!user) setAccountId('guest');
+      }).data?.subscription;
+    })();
+    return () => { try { unsub?.unsubscribe(); } catch {} };
+  }, []);
 
   const isGuest = accountId === 'guest';
   const goTab = (t) => { setTab(t); setView({ kind: 'tab' }); };
@@ -220,23 +273,104 @@ function LumenV3App() {
   const openFeedback = (f) => setView({ kind: 'feedback', data: f });
   const openAssessment = () => setView({ kind: 'assessment' });
   const back = () => setView({ kind: 'tab' });
-  const goLogin = () => { goTab('me'); };
- const doLogin = async (user) => {
-  setAccountId(user.email);
-  goTab('home');
-};
+  const goLogin = () => setView({ kind: 'auth' });
+  const onAuthSuccess = (user) => {
+    setAuthedUser(user);
+    setAccountId('me');
+    setView({ kind: 'tab' });
+    setTab('home');
+  };
+  const doSignOut = async () => {
+    try {
+      localStorage.removeItem('lumen_demo_mode');
+      localStorage.removeItem('lumen_demo_account');
+    } catch {}
+    if (!demoMode) {
+      await window.LumenData.authSignOut();
+    }
+    setAuthedUser(null);
+    setAccountId('guest');
+    setTab('home');
+  };
+
+  // ── 通知 / 请假 调课 接入 ─────────────────────────
+  if (window.LumenStore) LumenStore.useLumenStore();
+  const unread = window.LumenStore ? LumenStore.unreadCount('parent') : 0;
+  const openNotifications = () => setView({ kind: 'notifications' });
+  const openRequest = (defaultType = 'leave', prefill = {}) =>
+    setView({ kind: 'request', data: { defaultType, prefill } });
+
+  const topBarProps = {
+    activeId: accountId,
+    onChangeAccount: setAccountId,
+    onOpenNotifications: openNotifications,
+    unreadCount: unread,
+  };
 
   let body;
-  if (view.kind === 'lesson') {
-    body = <V3LessonDetail lesson={view.data} onBack={back}/>;
+  if (view.kind === 'notifications') {
+    const Screen = window.NotificationsScreen;
+    body = Screen ? <Screen onBack={back} audience="parent"/> : null;
+  } else if (view.kind === 'request') {
+    const Screen = window.RequestFormScreen;
+    body = Screen ? <Screen onBack={back} {...(view.data || {})}/> : null;
+  } else if (view.kind === 'lesson') {
+    body = <V3LessonDetail lesson={view.data} onBack={back} onRequest={openRequest}/>;
   } else if (view.kind === 'feedback') {
     body = <V3FeedbackDetail fb={view.data} onBack={back}/>;
   } else if (view.kind === 'assessment') {
     body = <V3AssessmentDetail onBack={back}/>;
+  } else if (view.kind === 'addStudent') {
+    body = <V3AddStudent onSaved={() => setView({ kind: 'tab' })} onBack={back}/>;
+  } else if (view.kind === 'auth') {
+    body = <V3AuthScreen onSuccess={onAuthSuccess} onBack={back}/>;
+  } else if (accountId === 'me' && authedUser && tab === 'home') {
+    // Onboarding stage override
+    const stage = onboardingStage;
+    const StageA = window.OnboardingStageA;
+    const StageB = window.OnboardingStageB;
+    if (stage === 'A' && StageA) {
+      body = (
+        <>
+          <V3TopBar {...topBarProps}/>
+          <StageA user={authedUser} onSubmitted={() => setStageAndPersist('B')}/>
+        </>
+      );
+    } else if (stage === 'B' && StageB) {
+      body = (
+        <>
+          <V3TopBar {...topBarProps}/>
+          <StageB studentName="小曜" onComplete={() => setStageAndPersist(null)}/>
+        </>
+      );
+    } else {
+      body = (
+        <>
+          <V3TopBar {...topBarProps}/>
+          <V3LiveHome
+            user={authedUser}
+            onSignOut={doSignOut}
+            onAddStudent={() => setView({ kind: 'addStudent' })}
+          />
+        </>
+      );
+    }
+  } else if (accountId === 'me' && authedUser) {
+    body = (
+      <>
+        <V3TopBar {...topBarProps}/>
+        <div style={{ padding: '40px 22px', textAlign: 'center' }}>
+          <div style={{ fontFamily: V2.font.cn, fontSize: 14, color: V2.c.muted, lineHeight: 1.6 }}>
+            此区即将上线<br/>
+            目前请回到首页查看你的孩子档案
+          </div>
+        </div>
+      </>
+    );
   } else if (isGuest && tab === 'home') {
     body = (
       <>
-        <V3TopBar activeId={accountId} onChangeAccount={setAccountId}/>
+        <V3TopBar {...topBarProps}/>
         <V3GuestHome
           onBookAssessment={openAssessment}
           onOpenLogin={goLogin}
@@ -247,50 +381,70 @@ function LumenV3App() {
   } else if (isGuest && tab === 'archive') {
     body = (
       <>
-        <V3TopBar activeId={accountId} onChangeAccount={setAccountId}/>
+        <V3TopBar {...topBarProps}/>
         <V3GuestArchive onBookAssessment={openAssessment} onOpenLogin={goLogin}/>
       </>
     );
   } else if (isGuest && tab === 'schedule') {
     body = (
       <>
-        <V3TopBar activeId={accountId} onChangeAccount={setAccountId}/>
+        <V3TopBar {...topBarProps}/>
         <V3GuestSchedule onBookAssessment={openAssessment}/>
       </>
     );
- } else if (isGuest && tab === 'me') {
-  body = (
-    <>
-      <V3TopBar activeId={accountId} onChangeAccount={setAccountId}/>
-      <V3LoginScreen onLoginSuccess={doLogin} onBack={() => goTab('home')}/>
-    </>
-  );
-  } else if (tab === 'home') {
+  } else if (isGuest && tab === 'me') {
     body = (
       <>
-        <V3TopBar activeId={accountId} onChangeAccount={setAccountId}/>
-        <V3Home
-          accountId={accountId}
-          onOpenLesson={openLesson}
-          onOpenFeedback={openFeedback}
-          onOpenArchive={() => goTab('archive')}
-          onOpenSchedule={() => goTab('schedule')}
-        />
+        <V3TopBar {...topBarProps}/>
+        <V3GuestMe onLogin={goLogin}/>
       </>
     );
+  } else if (tab === 'home') {
+    // Honor stage override even in mock/demo mode
+    const stage = onboardingStage;
+    const StageA = window.OnboardingStageA;
+    const StageB = window.OnboardingStageB;
+    if (stage === 'A' && StageA) {
+      body = (
+        <>
+          <V3TopBar {...topBarProps}/>
+          <StageA user={null} onSubmitted={() => setStageAndPersist('B')}/>
+        </>
+      );
+    } else if (stage === 'B' && StageB) {
+      body = (
+        <>
+          <V3TopBar {...topBarProps}/>
+          <StageB studentName="小曜" onComplete={() => setStageAndPersist(null)}/>
+        </>
+      );
+    } else {
+      body = (
+        <>
+          <V3TopBar {...topBarProps}/>
+          <V3Home
+            accountId={accountId}
+            onOpenLesson={openLesson}
+            onOpenFeedback={openFeedback}
+            onOpenArchive={() => goTab('archive')}
+            onOpenSchedule={() => goTab('schedule')}
+          />
+        </>
+      );
+    }
   } else if (tab === 'archive') {
     body = <V2ScreenProgress onBack={() => {}}/>;
   } else if (tab === 'schedule') {
     body = (
       <>
-        <V3TopBar activeId={accountId} onChangeAccount={setAccountId}/>
+        <V3TopBar {...topBarProps}/>
         <V3Schedule accountId={accountId} onOpenLesson={openLesson}/>
       </>
     );
   } else if (tab === 'me') {
     body = (
       <>
-        <V3TopBar activeId={accountId} onChangeAccount={setAccountId}/>
+        <V3TopBar {...topBarProps}/>
         <V3Me accountId={accountId}/>
       </>
     );

@@ -72,10 +72,10 @@ function V3GuestHome({ onBookAssessment, onOpenLogin, onOpenSchedule }) {
       <V3GuestSection no="01" en="WHAT WE TEACH" title="我们教什么">
         <div style={{ padding: '8px 22px 22px' }}>
           {[
-            { tag: 'chinese', name: '中文',     en: 'CHINESE',  desc: 'HSK 一至六级 · 经典阅读 · 写作' },
-            { tag: 'english', name: '英语',     en: 'ENGLISH',  desc: 'KET / PET · 母语向阅读与写作' },
-            { tag: 'math',    name: '数学',     en: 'MATHS',    desc: '法国课纲衔接 · 袋鼠数学 · 概念可视化' },
-            { tag: 'french',  name: '法语',     en: 'FRANÇAIS', desc: 'DELF A1–B2 · 母语向写作辅导' },
+            { tag: 'chinese', name: '中文',     en: 'CHINESE',  desc: 'HSK 1–6 · 阅读 · 写作' },
+            { tag: 'english', name: '英语',     en: 'ENGLISH',  desc: 'Starters · Movers · KET · PET' },
+            { tag: 'math',    name: '数学',     en: 'MATHS',    desc: 'Koala · Wallaby · Kangaroo · Cadet' },
+            { tag: 'french',  name: '法语',     en: 'FRANÇAIS', desc: 'A1 · A2 · B1 · B2 · 母语向写作' },
             { tag: 'support', name: '兴趣探索', en: 'INTERESTS',desc: '阅读项目 · 创意写作 · 学习方法' },
           ].map((s, i) => (
             <div key={s.tag} style={{
@@ -504,10 +504,6 @@ function V3GuestSchedule({ onBookAssessment }) {
 // GUEST · ME — login form + small reassurances
 // ────────────────────────────────────────────────────────────
 function V3GuestMe({ onLogin }) {
-  const [phone, setPhone] = u3gState('+33 6 12 34 56 78');
-  const [code, setCode] = u3gState('');
-  const [sent, setSent] = u3gState(false);
-
   return (
     <div style={{ padding: '24px 22px 40px' }}>
       <div style={{
@@ -520,75 +516,38 @@ function V3GuestMe({ onLogin }) {
         letterSpacing: -0.6, lineHeight: 1.2,
       }}>登录 Lumen</div>
       <div style={{
-        marginTop: 8, fontFamily: V2.font.cn, fontSize: 12.5,
+        marginTop: 8, fontFamily: V2.font.cn, fontSize: 13,
         color: V2.c.inkSoft, lineHeight: 1.65,
-      }}>使用注册时的手机号——一条短信验证码，无需密码。</div>
+      }}>用邮箱接收一个 6 位验证码 · 无需记密码。</div>
 
-      {/* Phone field */}
-      <div style={{ marginTop: 24 }}>
-        <label style={{
-          display: 'block', fontFamily: V2.font.mono, fontSize: 9.5,
-          fontWeight: 700, letterSpacing: 1.5, marginBottom: 6,
-        }}>手机号 · PHONE</label>
-        <input value={phone} onChange={e => setPhone(e.target.value)} style={{
-          width: '100%', padding: '12px 14px', boxSizing: 'border-box',
-          background: V2.c.paper, border: `1px solid ${V2.c.ink}`,
-          fontFamily: V2.font.cn, fontSize: 14, fontWeight: 600,
-          outline: 'none',
-        }}/>
-      </div>
-
-      {/* Code field */}
-      <div style={{ marginTop: 14 }}>
-        <label style={{
-          display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
-          fontFamily: V2.font.mono, fontSize: 9.5,
-          fontWeight: 700, letterSpacing: 1.5, marginBottom: 6,
-        }}>
-          <span>验证码 · CODE</span>
-          <button onClick={() => setSent(true)} style={{
-            background: 'transparent', border: 'none', cursor: 'pointer',
-            fontFamily: V2.font.mono, fontSize: 9.5, fontWeight: 600,
-            color: sent ? V2.c.muted : V2.c.cobalt, letterSpacing: 1,
-          }}>{sent ? '已发送 · 60S' : '发送 · SEND'}</button>
-        </label>
-        <input value={code} onChange={e => setCode(e.target.value)}
-          placeholder="6 位数字"
-          style={{
-            width: '100%', padding: '12px 14px', boxSizing: 'border-box',
-            background: V2.c.paper, border: `1px solid ${V2.c.ink}`,
-            fontFamily: V2.font.cn, fontSize: 14, fontWeight: 600,
-            outline: 'none', letterSpacing: 4,
-          }}/>
-      </div>
-
+      {/* Primary CTA */}
       <button onClick={onLogin} style={{
-        marginTop: 20, width: '100%', padding: '14px',
+        marginTop: 28, width: '100%', padding: '16px',
         background: V2.c.ink, color: V2.c.paper, border: 'none', cursor: 'pointer',
-        fontFamily: V2.font.cn, fontSize: 13.5, fontWeight: 700, letterSpacing: -0.1,
-      }}>登录 →</button>
+        fontFamily: V2.font.cn, fontSize: 15, fontWeight: 700, letterSpacing: 0.3,
+      }}>用邮箱登录 →</button>
+
+      {/* Secondary — demo hint */}
+      <div style={{
+        marginTop: 28, padding: '14px 16px',
+        background: V2.c.cream, border: `1px dashed ${V2.c.line}`,
+      }}>
+        <div style={{
+          fontFamily: V2.font.mono, fontSize: 9, color: V2.c.muted,
+          fontWeight: 700, letterSpacing: 1.5, marginBottom: 6,
+        }}>· DEMO · 演示模式</div>
+        <div style={{
+          fontFamily: V2.font.cn, fontSize: 12, color: V2.c.inkSoft, lineHeight: 1.6,
+        }}>无需登录就想看产品长什么样？在顶部头像处切到「林小曜」或「王女士」可进入演示视角。</div>
+      </div>
 
       <div style={{
-        marginTop: 20, padding: '14px 0', borderTop: `1px solid ${V2.c.lineSoft}`,
+        marginTop: 28, padding: '14px 0', borderTop: `1px solid ${V2.c.lineSoft}`,
         display: 'flex', justifyContent: 'space-between',
         fontFamily: V2.font.mono, fontSize: 9.5, color: V2.c.muted, letterSpacing: 1,
       }}>
         <span>· 帮助</span>
         <span>HELLO@LUMEN.EDU</span>
-      </div>
-
-      {/* Demo hint */}
-      <div style={{
-        marginTop: 24, padding: '14px 16px',
-        background: V2.c.cream, border: `1px dashed ${V2.c.ink}`,
-      }}>
-        <div style={{
-          fontFamily: V2.font.mono, fontSize: 9, color: V2.c.muted,
-          fontWeight: 700, letterSpacing: 1.5, marginBottom: 6,
-        }}>· DEMO TIP</div>
-        <div style={{
-          fontFamily: V2.font.cn, fontSize: 12, color: V2.c.inkSoft, lineHeight: 1.6,
-        }}>这是原型——点击"登录 →"即可以王女士的身份进入家长视角，也可在顶部头像处切换为林小曜（孩子）的视角。</div>
       </div>
     </div>
   );
