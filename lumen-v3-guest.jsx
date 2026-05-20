@@ -541,6 +541,18 @@ function V3GuestMe({ onLogin }) {
         }}>无需登录就想看产品长什么样？在顶部头像处切到「林小曜」或「王女士」可进入演示视角。</div>
       </div>
 
+      {/* 教务入口 */}
+      <button onClick={() => window.open('/staff.html', '_blank')} style={{
+        marginTop: 16, width: '100%', padding: '14px 16px',
+        background: V2.c.paper, color: V2.c.ink,
+        border: `1px solid ${V2.c.ink}`, cursor: 'pointer',
+        fontFamily: V2.font.cn, fontSize: 13, fontWeight: 600,
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+      }}>
+        <span>教务后台登录</span>
+        <span style={{ fontFamily: V2.font.mono, fontSize: 11, color: V2.c.muted }}>STAFF →</span>
+      </button>
+
       <div style={{
         marginTop: 28, padding: '14px 0', borderTop: `1px solid ${V2.c.lineSoft}`,
         display: 'flex', justifyContent: 'space-between',
